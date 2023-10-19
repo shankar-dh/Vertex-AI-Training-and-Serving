@@ -1,0 +1,5 @@
+[core]
+    remote = timeseries
+['remote "timeseries"']
+    url = gs://mlops-data-ie7374
+    credentialpath = E:\NEU\TA\weighty-forest-399219-3af0a085b385.json
