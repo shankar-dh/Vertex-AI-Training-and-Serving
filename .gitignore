@@ -1,4 +1,7 @@
-timeseries_env
+ts_env
 TimeSeries_project.pdf
 data/monthly_data
 data/raw_data
+data/train
+data/test
+data/normalized_data
