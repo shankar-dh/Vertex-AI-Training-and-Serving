@@ -5,3 +5,4 @@ data/raw_data
 data/train
 data/test
 data/normalized_data
+.env
