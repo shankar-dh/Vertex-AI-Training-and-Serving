@@ -81,8 +81,8 @@ joblib.dump(scaler, local_scaler_path)
 
 
 version = datetime.now().strftime('%d-%m-%Y-%H%M%S') 
-gcs_model_path = f"gs://mlops-data-ie7374/model/model_{version}.pkl"
-gcs_scaler_path = f"gs://mlops-data-ie7374/model/scaler_{version}.pkl"
+gcs_model_path = f"gs://mlops-data-ie7374/model/model/model_{version}.pkl"
+gcs_scaler_path = f"gs://mlops-data-ie7374/model/scaler/scaler_{version}.pkl"
 # Upload model and scaler to GCS
 storage_client = storage.Client()
 bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
