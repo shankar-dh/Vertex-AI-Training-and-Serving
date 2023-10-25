@@ -8,6 +8,7 @@ import joblib
 import os
 import logging
 
+print("---------------------Lopaliki OCha----------------")
 
 def load_data():
 
