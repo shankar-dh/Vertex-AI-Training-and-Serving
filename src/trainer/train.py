@@ -78,7 +78,9 @@ model = train_model(X_train, y_train)
 
 # Save the model and scaler to local files
 local_model_path = "model.pkl"
+
 local_scaler_path = "scaler.json"
+
 joblib.dump(model, local_model_path)
 
 with open(local_scaler_path, 'w') as f:
