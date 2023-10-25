@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 import joblib
 import os
+import logging
 
 
 def load_data():
@@ -87,45 +88,43 @@ def train_model(X_train, y_train):
 
 
 if __name__ == "__main__":
-    # Call the functions when running the script directly
-    if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     logging.info("Starting script execution...")
-
+    
     if len(sys.argv) > 1:
-        script_function = sys.argv[1]
-        if script_function == 'load_data':
-            load_data()
-        elif script_function == 'data_transform':
-            data_transform()
-        elif script_function == 'train_model':
-            train_model()
-            local_model_path = "model.pkl"
-            local_scaler_path = "scaler.pkl"
-            joblib.dump(model, local_model_path)
-            joblib.dump(scaler, local_scaler_path)
+    script_function = sys.argv[1]
+    if script_function == 'load_data':
+        load_data()
+    elif script_function == 'data_transform':
+        data_transform()
+    elif script_function == 'train_model':
+        train_model()
+        local_model_path = "model.pkl"
+        local_scaler_path = "scaler.pkl"
+        joblib.dump(model, local_model_path)
+        joblib.dump(scaler, local_scaler_path)
+    
+        # Specify GCS path
+        MODEL_DIR = os.getenv("AIP_MODEL_DIR")
+        gcs_model_path = os.path.join(MODEL_DIR, "model.pkl")
+        gcs_scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
         
-            # Specify GCS path
-            MODEL_DIR = os.getenv("AIP_MODEL_DIR")
-            gcs_model_path = os.path.join(MODEL_DIR, "model.pkl")
-            gcs_scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
-            
-            # Upload model and scaler to GCS
-            storage_client = storage.Client()
-            bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
-            bucket = storage_client.bucket(bucket_name)
-            blob_model = bucket.blob(blob_path)
-            blob_model.upload_from_filename(local_model_path)
-            
-            # Update blob path for scaler and upload
-            blob_path = gcs_scaler_path.split("gs://")[1].split("/", 1)[1]
-            blob_scaler = bucket.blob(blob_path)
-            blob_scaler.upload_from_filename(local_scaler_path)
-        else:
-            logging.warning(f"Unknown script function: {script_function}")
+        # Upload model and scaler to GCS
+        storage_client = storage.Client()
+        bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
+        bucket = storage_client.bucket(bucket_name)
+        blob_model = bucket.blob(blob_path)
+        blob_model.upload_from_filename(local_model_path)
+        
+        # Update blob path for scaler and upload
+        blob_path = gcs_scaler_path.split("gs://")[1].split("/", 1)[1]
+        blob_scaler = bucket.blob(blob_path)
+        blob_scaler.upload_from_filename(local_scaler_path)
     else:
-        logging.error("No script function provided.")
-
+        logging.warning(f"Unknown script function: {script_function}")
+    else:
+    logging.error("No script function provided.")
+    
     logging.info("Script execution complete.")
 
 
