@@ -25,6 +25,7 @@ def load_data():
     ]
 
     df.columns = column_names
+    print("Loading Data is successfully done # Change by Dheeraj")
 
     return df
 
