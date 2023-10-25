@@ -58,30 +58,60 @@ def train_model(X_train, y_train):
     model.fit(X_train, y_train)
     return model
 
-df = load_data()
-X_train, X_test, y_train, y_test, scaler = data_transform(df)
-model = train_model(X_train, y_train)
+# df = load_data()
+# X_train, X_test, y_train, y_test, scaler = data_transform(df)
+# model = train_model(X_train, y_train)
 
-# Save the model and scaler to local files
-local_model_path = "model.pkl"
-local_scaler_path = "scaler.pkl"
-joblib.dump(model, local_model_path)
-joblib.dump(scaler, local_scaler_path)
+# # Save the model and scaler to local files
+# local_model_path = "model.pkl"
+# local_scaler_path = "scaler.pkl"
+# joblib.dump(model, local_model_path)
+# joblib.dump(scaler, local_scaler_path)
 
-# Specify GCS path
-MODEL_DIR = os.getenv("AIP_MODEL_DIR")
-gcs_model_path = os.path.join(MODEL_DIR, "model.pkl")
-gcs_scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
+# # Specify GCS path
+# MODEL_DIR = os.getenv("AIP_MODEL_DIR")
+# gcs_model_path = os.path.join(MODEL_DIR, "model.pkl")
+# gcs_scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
 
-# Upload model and scaler to GCS
-storage_client = storage.Client()
-bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
-bucket = storage_client.bucket(bucket_name)
-blob_model = bucket.blob(blob_path)
-blob_model.upload_from_filename(local_model_path)
+# # Upload model and scaler to GCS
+# storage_client = storage.Client()
+# bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
+# bucket = storage_client.bucket(bucket_name)
+# blob_model = bucket.blob(blob_path)
+# blob_model.upload_from_filename(local_model_path)
 
-# Update blob path for scaler and upload
-blob_path = gcs_scaler_path.split("gs://")[1].split("/", 1)[1]
-blob_scaler = bucket.blob(blob_path)
-blob_scaler.upload_from_filename(local_scaler_path)
+# # Update blob path for scaler and upload
+# blob_path = gcs_scaler_path.split("gs://")[1].split("/", 1)[1]
+# blob_scaler = bucket.blob(blob_path)
+# blob_scaler.upload_from_filename(local_scaler_path)
+
+
+if __name__ == "__main__":
+    # Call the functions when running the script directly
+    df = load_data()
+    X_train, X_test, y_train, y_test, scaler = data_transform(df)
+    model = train_model(X_train, y_train)
+
+    # Save the model and scaler to local files
+    local_model_path = "model.pkl"
+    local_scaler_path = "scaler.pkl"
+    joblib.dump(model, local_model_path)
+    joblib.dump(scaler, local_scaler_path)
+
+    # Specify GCS path
+    MODEL_DIR = os.getenv("AIP_MODEL_DIR")
+    gcs_model_path = os.path.join(MODEL_DIR, "model.pkl")
+    gcs_scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
+    
+    # Upload model and scaler to GCS
+    storage_client = storage.Client()
+    bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
+    bucket = storage_client.bucket(bucket_name)
+    blob_model = bucket.blob(blob_path)
+    blob_model.upload_from_filename(local_model_path)
+    
+    # Update blob path for scaler and upload
+    blob_path = gcs_scaler_path.split("gs://")[1].split("/", 1)[1]
+    blob_scaler = bucket.blob(blob_path)
+    blob_scaler.upload_from_filename(local_scaler_path)
 
