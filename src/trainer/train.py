@@ -1,4 +1,5 @@
 from google.cloud import storage
+from datetime import datetime
 import pandas as pd
 from io import StringIO
 from sklearn.model_selection import train_test_split
@@ -75,8 +76,13 @@ joblib.dump(scaler, local_scaler_path)
 # gcs_model_path = os.path.join(MODEL_DIR, "model.pkl")
 # gcs_scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
 
-gcs_model_path = "gs://mlops-data-ie7374/model/model.pkl"
-gcs_scaler_path =  "gs://mlops-data-ie7374/model/scaler.pkl"
+# gcs_model_path = "gs://mlops-data-ie7374/model/model.pkl"
+# gcs_scaler_path =  "gs://mlops-data-ie7374/model/scaler.pkl"
+
+
+version = datetime.now().strftime('%Y%m%d%H%M%S')  # e.g., '20231025183230'
+gcs_model_path = f"gs://mlops-data-ie7374/model/model_{version}.pkl"
+gcs_scaler_path = f"gs://mlops-data-ie7374/model/scaler_{version}.pkl"
 # Upload model and scaler to GCS
 storage_client = storage.Client()
 bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
