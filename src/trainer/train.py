@@ -54,8 +54,8 @@ def data_transform(df):
     
     # Standard scaling
     # scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+    # X_train_scaled = scaler.fit_transform(X_train)
+    # X_test_scaled = scaler.transform(X_test)
 
     stats = {
     'mean': X_train.mean().to_dict(),
@@ -80,7 +80,11 @@ model = train_model(X_train, y_train)
 local_model_path = "model.pkl"
 local_scaler_path = "scaler.json"
 joblib.dump(model, local_model_path)
-json.dump(scaler, local_scaler_path)
+
+with open(local_scaler_path, 'w') as f:
+    json.dump(scaler, f)
+
+# json.dump(scaler, local_scaler_path)
 
 # Specify GCS path
 # MODEL_DIR = os.getenv("AIP_MODEL_DIR")
@@ -95,6 +99,7 @@ version = datetime.now().strftime('%d-%m-%Y-%H%M%S')
 gcs_model_path = f"gs://mlops-data-ie7374/model/model/model_{version}.pkl"
 gcs_scaler_path = f"gs://mlops-data-ie7374/model/scaler/scaler_{version}.json"
 # Upload model and scaler to GCS
+
 storage_client = storage.Client()
 bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
 bucket = storage_client.bucket(bucket_name)
