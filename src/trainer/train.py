@@ -78,9 +78,9 @@ model = train_model(X_train, y_train)
 
 # Save the model and scaler to local files
 local_model_path = "model.pkl"
-local_scaler_path = "scaler.pkl"
+local_scaler_path = "scaler.json"
 joblib.dump(model, local_model_path)
-joblib.dump(scaler, local_scaler_path)
+json.dump(scaler, local_scaler_path)
 
 # Specify GCS path
 # MODEL_DIR = os.getenv("AIP_MODEL_DIR")
