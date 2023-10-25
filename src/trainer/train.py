@@ -71,10 +71,12 @@ joblib.dump(model, local_model_path)
 joblib.dump(scaler, local_scaler_path)
 
 # Specify GCS path
-MODEL_DIR = os.getenv("AIP_MODEL_DIR")
-gcs_model_path = os.path.join(MODEL_DIR, "model.pkl")
-gcs_scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
+# MODEL_DIR = os.getenv("AIP_MODEL_DIR")
+# gcs_model_path = os.path.join(MODEL_DIR, "model.pkl")
+# gcs_scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
 
+gcs_model_path = "gs://mlops-data-ie7374/model/model.pkl"
+gcs_scaler_path =  "gs://mlops-data-ie7374/model/scaler.pkl"
 # Upload model and scaler to GCS
 storage_client = storage.Client()
 bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
