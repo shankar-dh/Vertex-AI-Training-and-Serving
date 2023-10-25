@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 import joblib
+import json
 import os
 import logging
 
@@ -47,13 +48,23 @@ def data_transform(df):
 
     X_test = test.drop(columns=['CO(GT)'])
     y_test = test['CO(GT)']
-
+    
+    X_train_scaled = (X_train - X_train.mean()) / X_train.std()
+    X_test_scaled = (X_test - X_test.mean()) / X_test.std()
+    
     # Standard scaling
-    scaler = StandardScaler()
+    # scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
+
+    stats = {
+    'mean': X_train.mean().to_dict(),
+    'std': X_train.std().to_dict(),
+    'mean_test': X_test.mean().to_dict(),
+    'std_test': X_test.std().to_dict()
+    }
     
-    return X_train_scaled, X_test_scaled, y_train, y_test, scaler
+    return X_train_scaled, X_test_scaled, y_train, y_test,stats
 
 
 def train_model(X_train, y_train):
@@ -82,7 +93,7 @@ joblib.dump(scaler, local_scaler_path)
 
 version = datetime.now().strftime('%d-%m-%Y-%H%M%S') 
 gcs_model_path = f"gs://mlops-data-ie7374/model/model/model_{version}.pkl"
-gcs_scaler_path = f"gs://mlops-data-ie7374/model/scaler/scaler_{version}.pkl"
+gcs_scaler_path = f"gs://mlops-data-ie7374/model/scaler/scaler_{version}.json"
 # Upload model and scaler to GCS
 storage_client = storage.Client()
 bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
