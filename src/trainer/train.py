@@ -31,7 +31,19 @@ def load_data():
 
     return df
 
-def data_transform(df):
+def normalize_data(data, stats):
+    normalized_data = {}
+    for column in data.columns:
+        mean = stats["mean"][column]
+        std = stats["std"][column]
+        
+        normalized_data[column] = [(value - mean) / std for value in data[column]]
+    
+    # Convert normalized_data dictionary back to a DataFrame
+    normalized_df = pd.DataFrame(normalized_data, index=data.index)
+    return normalized_df
+
+def data_transform(df, stats):
     
     df['Datetime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
     df.set_index('Datetime', inplace=True)
@@ -46,23 +58,13 @@ def data_transform(df):
 
     X_test = test.drop(columns=['CO(GT)'])
     y_test = test['CO(GT)']
-    
-    X_train_scaled = (X_train - X_train.mean()) / X_train.std()
-    X_test_scaled = (X_test - X_test.mean()) / X_test.std()
-    
-    # Standard scaling
-    # scaler = StandardScaler()
-    # X_train_scaled = scaler.fit_transform(X_train)
-    # X_test_scaled = scaler.transform(X_test)
 
-    stats = {
-    'mean': X_train.mean().to_dict(),
-    'std': X_train.std().to_dict(),
-    'mean_test': X_test.mean().to_dict(),
-    'std_test': X_test.std().to_dict()
-    }
+    # Normalize the data using the statistics from the training set
+    X_train_scaled = normalize_data(X_train, stats)
+    y_train_scaled = (y_train - stats["mean"]['CO(GT)']) / stats["std"]['CO(GT)']
     
-    return X_train_scaled, X_test_scaled, y_train, y_test,stats
+    return X_train_scaled, X_test, y_train_scaled, y_test
+
 
 
 def train_model(X_train, y_train):
@@ -71,7 +73,7 @@ def train_model(X_train, y_train):
     return model
 
 df = load_data()
-X_train, X_test, y_train, y_test, scaler = data_transform(df)
+X_train, X_test, y_train, y_test = data_transform(df)
 model = train_model(X_train, y_train)
 
 # Save the model and scaler to local files
@@ -81,18 +83,7 @@ local_scaler_path = "scaler.json"
 
 joblib.dump(model, local_model_path)
 
-with open(local_scaler_path, 'w') as f:
-    json.dump(scaler, f)
 
-# json.dump(scaler, local_scaler_path)
-
-# Specify GCS path
-# MODEL_DIR = os.getenv("AIP_MODEL_DIR")
-# gcs_model_path = os.path.join(MODEL_DIR, "model.pkl")
-# gcs_scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
-
-# gcs_model_path = "gs://mlops-data-ie7374/model/model.pkl"
-# gcs_scaler_path =  "gs://mlops-data-ie7374/model/scaler.pkl"
 
 edt = pytz.timezone('US/Eastern')
 
