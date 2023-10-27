@@ -43,7 +43,7 @@ def normalize_data(data, stats):
     normalized_df = pd.DataFrame(normalized_data, index=data.index)
     return normalized_df
 
-def data_transform(df, stats):
+def data_transform(df):
     
     df['Datetime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
     df.set_index('Datetime', inplace=True)
@@ -58,6 +58,17 @@ def data_transform(df, stats):
 
     X_test = test.drop(columns=['CO(GT)'])
     y_test = test['CO(GT)']
+
+     # Get the json from GCS
+    client = storage.Client()
+    bucket_name = 'mlops-data-ie7374' # Change this to your bucket name
+    blob_path = 'scaler/normalization_stats.json' # Change this to your blob path where the data is stored
+    bucket = client.get_bucket(bucket_name)
+    blob = bucket.blob(blob_path)
+
+    # Download the json as a string
+    data = blob.download_as_string()
+    stats = json.loads(data)
 
     # Normalize the data using the statistics from the training set
     X_train_scaled = normalize_data(X_train, stats)
