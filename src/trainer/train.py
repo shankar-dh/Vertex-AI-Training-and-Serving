@@ -89,10 +89,7 @@ df = load_data()
 X_train, X_test, y_train, y_test = data_transform(df)
 model = train_model(X_train, y_train)
 
-# Save the model and scaler to local files
 local_model_path = "model.pkl"
-
-
 joblib.dump(model, local_model_path)
 
 
