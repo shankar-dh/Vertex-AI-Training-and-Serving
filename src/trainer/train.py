@@ -10,8 +10,6 @@ import json
 import os
 import logging
 
-print("---------------------Lopaliki OCha----------------")
-
 def load_data():
 
     client = storage.Client()
@@ -29,7 +27,6 @@ def load_data():
     ]
 
     df.columns = column_names
-    print("Loading Data is successfully done # Change by Dheeraj")
 
     return df
 
