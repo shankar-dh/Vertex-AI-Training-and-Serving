@@ -13,7 +13,7 @@ default_args = {
 }
 
 dag = DAG(
-    'Retraining Model',
+    'Retraining_Model',
     default_args=default_args,
     description='Model retraining at 9 PM everyday',
     schedule_interval='0 21 * * *',  # Every day at 9 pm
