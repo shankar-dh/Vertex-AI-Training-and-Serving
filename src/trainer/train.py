@@ -1,5 +1,6 @@
 from google.cloud import storage
 from datetime import datetime
+import pytz
 import pandas as pd
 from io import StringIO
 from sklearn.model_selection import train_test_split
@@ -93,8 +94,13 @@ with open(local_scaler_path, 'w') as f:
 # gcs_model_path = "gs://mlops-data-ie7374/model/model.pkl"
 # gcs_scaler_path =  "gs://mlops-data-ie7374/model/scaler.pkl"
 
+edt = pytz.timezone('US/Eastern')
 
-version = datetime.now().strftime('%d-%m-%Y-%H%M%S') 
+# Get the current time in EDT
+current_time_edt = datetime.now(edt)
+
+version = current_time_edt.strftime('%d-%m-%Y-%H%M%S')
+
 gcs_model_path = f"gs://mlops-data-ie7374/model/model/model_{version}.pkl"
 gcs_scaler_path = f"gs://mlops-data-ie7374/model/scaler/scaler_{version}.json"
 # Upload model and scaler to GCS
