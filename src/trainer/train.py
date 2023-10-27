@@ -10,6 +10,8 @@ import joblib
 import json
 import os
 import logging
+import gcsfs
+
 
 def load_data():
 
@@ -102,8 +104,7 @@ current_time_edt = datetime.now(edt)
 
 version = current_time_edt.strftime('%d-%m-%Y-%H%M%S')
 
-# MODEL_DIR  = os.getenv("AIP_MODEL_DIR")
-MODEL_DIR = 'gs://mlops-data-ie7374/model/'
+MODEL_DIR  = os.getenv("AIP_MODEL_DIR")
 gcs_model_path = os.path.join(MODEL_DIR, "model_" + str(version) + ".pkl")
 
 storage_client = storage.Client()
@@ -111,6 +112,13 @@ bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
 bucket = storage_client.bucket(bucket_name)
 blob_model = bucket.blob(blob_path)
 blob_model.upload_from_filename(local_model_path)
+
+model_gcs_path = "gs://mlops-data-ie7374/model/" + "model_" + str(version) + ".pkl"
+
+# Use gcsfs to open a GCS file for writing
+with gcsfs.GCSFileSystem().open(model_gcs_path, 'wb') as f:
+    joblib.dump(model, f)
+
 
 
 
