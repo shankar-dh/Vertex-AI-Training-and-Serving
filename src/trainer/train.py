@@ -90,7 +90,6 @@ model = train_model(X_train, y_train)
 # Save the model and scaler to local files
 local_model_path = "model.pkl"
 
-local_scaler_path = "scaler.json"
 
 joblib.dump(model, local_model_path)
 
@@ -103,9 +102,9 @@ current_time_edt = datetime.now(edt)
 
 version = current_time_edt.strftime('%d-%m-%Y-%H%M%S')
 
-gcs_model_path = f"gs://mlops-data-ie7374/model/model/model_{version}.pkl"
-gcs_scaler_path = f"gs://mlops-data-ie7374/model/scaler/scaler_{version}.json"
-# Upload model and scaler to GCS
+# MODEL_DIR  = os.getenv("AIP_MODEL_DIR")
+MODEL_DIR = 'gs://mlops-data-ie7374/model/'
+gcs_model_path = os.path.join(MODEL_DIR, "model_" + str(version) + ".pkl")
 
 storage_client = storage.Client()
 bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
@@ -113,9 +112,6 @@ bucket = storage_client.bucket(bucket_name)
 blob_model = bucket.blob(blob_path)
 blob_model.upload_from_filename(local_model_path)
 
-# Update blob path for scaler and upload
-blob_path = gcs_scaler_path.split("gs://")[1].split("/", 1)[1]
-blob_scaler = bucket.blob(blob_path)
-blob_scaler.upload_from_filename(local_scaler_path)
+
 
 
