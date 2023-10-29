@@ -192,9 +192,9 @@ Once you have configured all these steps run `python build.py` to build and depl
     - First, the `pull_script_from_github` task is executed.
     - Upon its successful completion, the `run_python_script` task is triggered. This ensures that the latest version of the training script is always used for retraining.
 
-This scipt ensures that the model is retrained every day at 9 PM. The model is saved to Google Cloud Storage. 
+This script ensures that the model is retrained every day at 9 PM. The model is saved to Google Cloud Storage. 
 
-In order to use the latest model for serving rebuild the trainining image and use the same image for serving. Our prediction code will automatically use the latest model for serving.
+To use the latest model for serving rebuild the training image and use the same image for serving. Our prediction code will automatically use the latest model for serving.
 Run 'python build.py' to build and deploy the latest model in the Vertex AI Platform.
 
 ![Prediction_Page](image.png)
