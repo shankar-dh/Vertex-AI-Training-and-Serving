@@ -142,14 +142,14 @@ The `build.py` script contains several essential configurations for setting up a
    - Description: The URI for the Docker container of your training application.
    - Example:
      ```python
-     container_uri = 'us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train_latest:v1'
+     container_uri = 'us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1'
      ```
 
 5. **model_serving_container_image_uri**:
    - Description: The URI for the Docker container that will serve your model for predictions.
    - Example:
      ```python
-     model_serving_container_image_uri = 'us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve_latest:v1'
+     model_serving_container_image_uri = 'us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1'
      ```
 
 6. **display_name**:
