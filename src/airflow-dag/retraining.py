@@ -3,7 +3,7 @@ from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 
 LOCAL_FILE_PATH = '/tmp/train.py'
-GITHUB_RAW_URL = 'https://raw.githubusercontent.com/shankar-dh/Timeseries/main/src/trainer/train.py?token=GHSAT0AAAAAACHMX6YFUS2OOI6WZJNGZQY2ZJ4HONA'  # Adjust the path accordingly
+GITHUB_RAW_URL = 'Your train code URL in github' # Adjust the path accordingly
 
 default_args = {
     'owner': 'Time_Series_IE7374',

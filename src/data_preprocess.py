@@ -16,11 +16,6 @@ def create_testdata():
     test_data.to_csv(os.path.join('..', 'data', 'test', 'test_data.csv'))
 
 def load_data():
-    """
-    Load the training and test data from CSV files.
-    :return: train_data, test_data
-    """
-
     train_data = pd.read_csv(os.path.join('..', 'data', 'train', 'train_data.csv'))
     test_data = pd.read_csv(os.path.join('..', 'data', 'test', 'test_data.csv'))
 
@@ -28,11 +23,6 @@ def load_data():
 
 
 def preprocess_data(train_data):
-    """
-    Preprocess the training data by normalizing the features and saving the normalization statistics.
-    :param train_data: the training data
-    :return: None
-    """
     train_data_numeric = train_data.drop(columns=['Date', 'Time'])
 
     # Calculate mean and standard deviation for each feature in the training data
