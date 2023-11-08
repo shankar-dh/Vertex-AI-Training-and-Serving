@@ -133,31 +133,45 @@ Once you have configured all these steps run `python build.py` to build and depl
 
 1. **DAG Configuration**: 
     - **DAG Name**: `Retraining_Model`
-    - **Description**: Model retraining at 9 PM every day.
+    - **Description**: Data preprocessing and model retraining at 9 PM every day.
     - **Schedule**: Every day at 9 PM (`schedule_interval='0 21 * * *'`)
     - **Start Date**: October 24, 2023
-    - **Retries**: If the task fails, it will retry once (`retries=1`) with a delay of 5 minutes between the retries (`retry_delay=dt.timedelta(minutes=5)`).
+    - **Retries**: If the task fails, it will retry once (`retries=1`) with a delay of 5 minutes between retries (`retry_delay=dt.timedelta(minutes=5)`).
 
 2. **Tasks in the Workflow**:
 
-    a. **Pull train.py from GitHub**:
-        - **Task ID**: `pull_script_from_github`
-        - **Action**: Uses the `curl` command to download the `train.py` script from a GitHub repository. This is the script that contains the model training logic.
+    a. **Pull preprocess.py from GitHub**:
+        - **Task ID**: `pull_preprocess_script`
+        - **Action**: Uses the `curl` command to download the `preprocess.py` script from a GitHub repository. This script contains the data preprocessing logic.
+        - **GitHub URL**: URL path for preprocess.py code in your Github Repository.
+        - **Local Path**: The script is saved to `/tmp/preprocess.py` on the local system.
+
+    b. **Execute the Preprocessing Script**:
+        - **Task ID**: `run_preprocess_script`
+        - **Action**: Executes the previously downloaded Python script (`preprocess.py`) to preprocess the data.
+        - **Environment Variable**:
+            - `'AIP_MODEL_DIR': 'gs://mlops-data-ie7374/model/'`: Indicates the directory in Google Cloud Storage where the model will be saved after training. (Note: Adjust the path if necessary)
+        - **Execution Command**: `python /tmp/preprocess.py`
+
+    c. **Pull train.py from GitHub**:
+        - **Task ID**: `pull_train_script`
+        - **Action**: Uses the `curl` command to download the `train.py` script from a GitHub repository after the preprocessing is done. This is the script that contains the model training logic.
         - **GitHub URL**: URL path for train.py code in your Github Repository.
         - **Local Path**: The script is saved to `/tmp/train.py` on the local system.
 
-    b. **Execute the Python Script**:
-        - **Task ID**: `run_python_script`
+    d. **Execute the Training Script**:
+        - **Task ID**: `run_train_script`
         - **Action**: Executes the previously downloaded Python script (`train.py`) to retrain the model.
-        - **Environment Variable**:
-            - `'AIP_MODEL_DIR': 'gs://mlops-data-ie7374/model/'`: This indicates the directory in Google Cloud Storage where the model will be saved. (Note: Adjust the path if necessary)
         - **Execution Command**: `python /tmp/train.py`
 
 3. **Task Dependencies**:
-    - First, the `pull_script_from_github` task is executed.
-    - Upon its successful completion, the `run_python_script` task is triggered. This ensures that the latest version of the training script is always used for retraining.
+    - First, the `pull_preprocess_script` task is executed to fetch the preprocessing script.
+    - Upon its successful completion, the `run_preprocess_script` task is triggered to preprocess the data.
+    - In parallel, the `pull_train_script` task fetches the training script, but it will not run until the preprocessing is completed.
+    - Once preprocessing is done, the `run_train_script` task is executed to retrain the model. This ensures that the model is trained with the latest preprocessed data.
 
-This script ensures that the model is retrained every day at 9 PM. The model is saved to Google Cloud Storage. 
+The updated script ensures a streamlined process where data is preprocessed and the model is retrained daily at 9 PM. The retrained model is then saved to Google Cloud Storage, ready for deployment or further evaluation.
+
 
 To use the latest model for serving rebuild the training image and use the same image for serving. Our prediction code will automatically use the latest model for serving.
 Run 'python build.py' to build and deploy the latest model in the Vertex AI Platform.
