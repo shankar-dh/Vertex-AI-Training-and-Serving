@@ -129,48 +129,49 @@ Make sure to replace the placeholders such as `[YOUR_REGION]`, `[YOUR_PROJECT_ID
 Once you have configured all these steps run `python build.py` to build and deploy the model in the Vertex AI Platform.
 
 ## Continous Model retraining with Airflow
-### Workflow Overview:
+### Workflow Overview:<br><br>
 
-1. **DAG Configuration**: 
-    - **DAG Name**: `Retraining_Model`
-    - **Description**: Data preprocessing and model retraining at 9 PM every day.
-    - **Schedule**: Every day at 9 PM (`schedule_interval='0 21 * * *'`)
-    - **Start Date**: October 24, 2023
-    - **Retries**: If the task fails, it will retry once (`retries=1`) with a delay of 5 minutes between retries (`retry_delay=dt.timedelta(minutes=5)`).
+1. **DAG Configuration**: <br>
+    - **DAG Name**: `Retraining_Model`<br>
+    - **Description**: Data preprocessing and model retraining at 9 PM every day.<br>
+    - **Schedule**: Every day at 9 PM (`schedule_interval='0 21 * * *'`)<br>
+    - **Start Date**: October 24, 2023<br>
+    - **Retries**: If the task fails, it will retry once (`retries=1`) with a delay of 5 minutes between retries (`retry_delay=dt.timedelta(minutes=5)`).<br><br>
 
-2. **Tasks in the Workflow**:
+2. **Tasks in the Workflow**:<br>
 
-    a. **Pull preprocess.py from GitHub**:
-        - **Task ID**: `pull_preprocess_script`
-        - **Action**: Uses the `curl` command to download the `preprocess.py` script from a GitHub repository. This script contains the data preprocessing logic.
-        - **GitHub URL**: URL path for preprocess.py code in your Github Repository.
-        - **Local Path**: The script is saved to `/tmp/preprocess.py` on the local system.
+    a. **Pull preprocess.py from GitHub**:<br>
+        - **Task ID**: `pull_preprocess_script`<br>
+        - **Action**: Uses the `curl` command to download the `preprocess.py` script from a GitHub repository. This script contains the data preprocessing logic.<br>
+        - **GitHub URL**: URL path for preprocess.py code in your Github Repository.<br>
+        - **Local Path**: The script is saved to `/tmp/preprocess.py` on the local system.<br><br>
 
-    b. **Execute the Preprocessing Script**:
-        - **Task ID**: `run_preprocess_script`
-        - **Action**: Executes the previously downloaded Python script (`preprocess.py`) to preprocess the data.
-        - **Environment Variable**:
-            - `'AIP_MODEL_DIR': 'gs://mlops-data-ie7374/model/'`: Indicates the directory in Google Cloud Storage where the model will be saved after training. (Note: Adjust the path if necessary)
-        - **Execution Command**: `python /tmp/preprocess.py`
+    b. **Execute the Preprocessing Script**:<br>
+        - **Task ID**: `run_preprocess_script`<br>
+        - **Action**: Executes the previously downloaded Python script (`preprocess.py`) to preprocess the data.<br>
+        - **Environment Variable**:<br>
+            - `'AIP_MODEL_DIR': 'gs://mlops-data-ie7374/model/'`: Indicates the directory in Google Cloud Storage where the model will be saved after training. (Note: Adjust the path if necessary)<br>
+        - **Execution Command**: `python /tmp/preprocess.py`<br><br>
 
-    c. **Pull train.py from GitHub**:
-        - **Task ID**: `pull_train_script`
-        - **Action**: Uses the `curl` command to download the `train.py` script from a GitHub repository after the preprocessing is done. This is the script that contains the model training logic.
-        - **GitHub URL**: URL path for train.py code in your Github Repository.
-        - **Local Path**: The script is saved to `/tmp/train.py` on the local system.
+    c. **Pull train.py from GitHub**:<br>
+        - **Task ID**: `pull_train_script`<br>
+        - **Action**: Uses the `curl` command to download the `train.py` script from a GitHub repository after the preprocessing is done. This is the script that contains the model training logic.<br>
+        - **GitHub URL**: URL path for train.py code in your Github Repository.<br>
+        - **Local Path**: The script is saved to `/tmp/train.py` on the local system.<br><br>
 
-    d. **Execute the Training Script**:
-        - **Task ID**: `run_train_script`
-        - **Action**: Executes the previously downloaded Python script (`train.py`) to retrain the model.
-        - **Execution Command**: `python /tmp/train.py`
+    d. **Execute the Training Script**:<br>
+        - **Task ID**: `run_train_script`<br>
+        - **Action**: Executes the previously downloaded Python script (`train.py`) to retrain the model.<br>
+        - **Execution Command**: `python /tmp/train.py`<br><br>
 
-3. **Task Dependencies**:
-    - First, the `pull_preprocess_script` task is executed to fetch the preprocessing script.
-    - Upon its successful completion, the `run_preprocess_script` task is triggered to preprocess the data.
-    - In parallel, the `pull_train_script` task fetches the training script, but it will not run until the preprocessing is completed.
-    - Once preprocessing is done, the `run_train_script` task is executed to retrain the model. This ensures that the model is trained with the latest preprocessed data.
+3. **Task Dependencies**:<br>
+    - First, the `pull_preprocess_script` task is executed to fetch the preprocessing script.<br>
+    - Upon its successful completion, the `run_preprocess_script` task is triggered to preprocess the data.<br>
+    - In parallel, the `pull_train_script` task fetches the training script, but it will not run until the preprocessing is completed.<br>
+    - Once preprocessing is done, the `run_train_script` task is executed to retrain the model. This ensures that the model is trained with the latest preprocessed data.<br><br>
 
-The updated script ensures a streamlined process where data is preprocessed and the model is retrained daily at 9 PM. The retrained model is then saved to Google Cloud Storage, ready for deployment or further evaluation.
+The updated script ensures a streamlined process where data is preprocessed and the model is retrained daily at 9 PM. The retrained model is then saved to Google Cloud Storage, ready for deployment or further evaluation.<br>
+
 
 
 To use the latest model for serving rebuild the training image and use the same image for serving. Our prediction code will automatically use the latest model for serving.
