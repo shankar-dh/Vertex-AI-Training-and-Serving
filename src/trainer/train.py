@@ -2,10 +2,8 @@ from google.cloud import storage
 from datetime import datetime
 import pytz
 import pandas as pd
-from io import StringIO
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
 import joblib
 import json
 import os
@@ -13,24 +11,20 @@ import logging
 import gcsfs
 
 
-def load_data():
+def load_data(gcs_train_data_path):
+    # Initialize GCSFileSystem object
+    fs = gcsfs.GCSFileSystem()
+    
+    with fs.open(gcs_train_data_path) as f:
+        df = pd.read_csv(f)
 
-    client = storage.Client()
-    bucket_name = 'dataflow-apache-quickstart_weighty-forest-399219' # Change this to your bucket name
-    blob_path = 'dhanushkumar13@gmail.com/jobrun/train_data.csv/2023-10-20_18-17-57_00000000' # Change this to your blob path where the data is stored
-    bucket = client.get_bucket(bucket_name)
-    blob = bucket.blob(blob_path)
-
-    # Download the content of the file as a string
-    data = blob.download_as_text()
-    df = pd.read_csv(StringIO(data))
     column_names = [
         'Date', 'Time', 'CO(GT)', 'PT08.S1(CO)', 'NMHC(GT)', 'C6H6(GT)', 'PT08.S2(NMHC)', 
         'NOx(GT)', 'PT08.S3(NOx)', 'NO2(GT)', 'PT08.S4(NO2)', 'PT08.S5(O3)', 'T', 'RH', 'AH'
     ]
-
+    # Ensure the columns are named correctly
     df.columns = column_names
-
+    
     return df
 
 def normalize_data(data, stats):
@@ -85,7 +79,9 @@ def train_model(X_train, y_train):
     model.fit(X_train, y_train)
     return model
 
-df = load_data()
+
+gcs_train_data_path = "gs://mlops-data-ie7374/data/train/train_data.csv" # Change this to your train data path in GCS
+df = load_data(gcs_train_data_path)
 X_train, X_test, y_train, y_test = data_transform(df)
 model = train_model(X_train, y_train)
 
