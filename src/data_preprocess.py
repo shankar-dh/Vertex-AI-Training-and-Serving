@@ -46,7 +46,7 @@ def update_datasets(monthly_dataframes, train_data_csv_path, test_data_csv_path,
         # Find the next month in the sorted list of keys from the monthly_dataframes
         next_month_index = sorted_months.index(last_test_year_month) + 1
 
-        # Check if there is a next month's data to add
+        # Checking if there is a next month's data to add
         if next_month_index < len(sorted_months):
             # Add the previous test set to the training set
             train_data = pd.concat([train_data, test_data], ignore_index=True)
@@ -79,7 +79,6 @@ def update_datasets(monthly_dataframes, train_data_csv_path, test_data_csv_path,
     # Preprocess the training data
     preprocess_data(train_data, normalization_stats_json_path)
 
-    return train_data, test_data
 
 
 def upload_to_gcs(local_path, gcs_path):

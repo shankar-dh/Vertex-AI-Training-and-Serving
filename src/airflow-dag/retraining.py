@@ -2,8 +2,11 @@ import datetime as dt
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 
-LOCAL_FILE_PATH = '/tmp/train.py'
-GITHUB_RAW_URL = 'Your train code URL in github' # Adjust the path accordingly
+LOCAL_PREPROCESS_FILE_PATH = '/tmp/preprocess.py'
+GITHUB_PREPROCESS_RAW_URL = 'Your preprocess code URL in github'  # Adjust the path accordingly
+
+LOCAL_TRAIN_FILE_PATH = '/tmp/train.py'
+GITHUB_TRAIN_RAW_URL = 'Your train code URL in github'  # Adjust the path accordingly
 
 default_args = {
     'owner': 'Time_Series_IE7374',
@@ -20,25 +23,40 @@ dag = DAG(
     catchup=False,
 )
 
-# Task to pull train.py from GitHub
-pull_script = BashOperator(
-    task_id='pull_script_from_github',
-    bash_command=f'curl -o {LOCAL_FILE_PATH} {GITHUB_RAW_URL}',
+# Tasks for pulling scripts from GitHub
+pull_preprocess_script = BashOperator(
+    task_id='pull_preprocess_script',
+    bash_command=f'curl -o {LOCAL_PREPROCESS_FILE_PATH} {GITHUB_PREPROCESS_RAW_URL}',
     dag=dag,
 )
+
+pull_train_script = BashOperator(
+    task_id='pull_train_script',
+    bash_command=f'curl -o {LOCAL_TRAIN_FILE_PATH} {GITHUB_TRAIN_RAW_URL}',
+    dag=dag,
+)
+
 
 env = {
     'AIP_MODEL_DIR': 'gs://mlops-data-ie7374/model/'
 }
-bash_command = "python /tmp/train.py"
 
-# Operator to execute the Python script
-run_script = BashOperator(
-    task_id='run_python_script',
-    bash_command=bash_command,
+# Tasks for running scripts
+run_preprocess_script = BashOperator(
+    task_id='run_preprocess_script',
+    bash_command=f'python {LOCAL_PREPROCESS_FILE_PATH}',
     env=env,
     dag=dag,
 )
 
+run_train_script = BashOperator(
+    task_id='run_train_script',
+    bash_command=f'python {LOCAL_TRAIN_FILE_PATH}',
+    env=env,
+    dag=dag,
+)
 
-pull_script >> run_script
+# Setting up dependencies
+pull_preprocess_script >> run_preprocess_script
+pull_train_script >> run_train_script
+run_preprocess_script >> run_train_script 
