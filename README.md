@@ -22,41 +22,6 @@ The DVC-tracked data is stored on a Google Cloud Bucket.
 
 To ensure the model's optimal performance, we normalize the data. The normalization statistics, specifically the `mean` and `standard deviation`, are calculated based on the training data. The calculated normalization statistics (mean and standard deviation) are stored in a Google Cloud Bucket.
 
-For maintaining data quality and readiness, [Dataprep by Trifacta](https://cloud.google.com/dataprep) is employed. You can create flows, transform the dataset, and export the processed data seamlessly. It facilitates regular data inspections to handle missing values, and normalizes the data using key statistics. Dataprep also offers scheduling capabilities, allowing for these preprocessing tasks to be automated and run daily, ensuring the datasets used for training are always up-to-date and consistent.
-
-### Creating a Flow in Dataprep by Trifacta
-
-1. **Access Dataprep**: 
-   - Open Dataprep by Trifacta in your browser.
-   
-2. **Start a New Flow**:
-   - Navigate to the main dashboard.
-   - Click on the "Create Flow" button.
-
-3. **Name Your Flow**:
-   - Provide a relevant name and, if desired, a description to help identify the purpose of this flow.
-
-4. **Add Datasets to Your Flow**:
-   - Click on "Add Datasets".
-   - Choose to import data from various sources (local files, databases, cloud storage, etc.).
-   - Once selected, click on "Add" to add them to the flow.
-
-5. **Create Recipes**:
-   - Once your dataset is added, click on the dataset's name to view it.
-   - Start transforming the data by clicking on "Create Recipe".
-
-6. **Define Transformations**:
-   - Use the available transformation commands, functions, and visual tools to manipulate your data.
-   - Examples: filtering out rows, splitting columns, changing data formats.
-
-7. **Review and Save**:
-   - Review the transformations and click "Save" when satisfied.
-   - Preview results to ensure transformations produce the expected outcomes.
-
-8. **Export Processed Data**:
-   - After setting transformations, click on "Run Job".
-   - On completion, export the results directly to a Google Cloud Bucket.
-   - This processed data in the Google Cloud Bucket will be used for training our model.
 
 ## Model Training and Building
 1. **Folder Structure**:
