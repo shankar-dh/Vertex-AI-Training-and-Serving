@@ -92,8 +92,8 @@ def main():
     train_dir, test_dir = create_directories()
     
     # Define paths for the train and test data and normalization stats
-    train_data_csv_path = os.path.join(train_dir, 'train_data.csv')
-    test_data_csv_path = os.path.join(test_dir, 'test_data.csv')
+    train_data_csv_path = os.path.join(train_dir, 'train_data.csv') # Change this to train csv file in GCS bucket
+    test_data_csv_path = os.path.join(test_dir, 'test_data.csv') # Change this to test csv file in GCS bucket
     normalization_stats_json_path = os.path.join(train_dir, 'normalization_stats.json')
     
     air_quality_data = pd.read_excel(r'E:\NEU\TA\Time Series\data\raw_data\AirQualityUCI.xlsx') #Modify this to read from your GCS Bucket
