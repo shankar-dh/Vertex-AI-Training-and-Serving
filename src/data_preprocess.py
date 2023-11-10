@@ -96,7 +96,7 @@ def main():
     test_data_csv_path = os.path.join(test_dir, 'test_data.csv')
     normalization_stats_json_path = os.path.join(train_dir, 'normalization_stats.json')
     
-    air_quality_data = pd.read_excel(r'E:\NEU\TA\Time Series\data\raw_data\AirQualityUCI.xlsx')
+    air_quality_data = pd.read_excel(r'E:\NEU\TA\Time Series\data\raw_data\AirQualityUCI.xlsx') #Modify this to read from your GCS Bucket
     air_quality_data['YearMonth'] = air_quality_data['Date'].dt.to_period('M')
     monthly_groups = air_quality_data.groupby('YearMonth')
     monthly_dataframes = {str(period): group.drop('YearMonth', axis=1) for period, group in monthly_groups}
