@@ -6,28 +6,53 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 import joblib
 import json
-import os
-import logging
 import gcsfs
+import os
+from dotenv import load_dotenv
 
+# Load environment variables
+load_dotenv()
+
+# Initialize a gcsfs file system object
+fs = gcsfs.GCSFileSystem()
+storage_client = storage.Client()
+bucket_name = os.getenv("BUCKET_NAME")
+MODEL_DIR = os.getenv("AIP_MODEL_DIR")
 
 def load_data(gcs_train_data_path):
-    # Initialize GCSFileSystem object
-    fs = gcsfs.GCSFileSystem()
+    """
+    Loads the training data from Google Cloud Storage (GCS).
     
+    Parameters:
+    gcs_train_data_path (str): GCS path where the training data CSV is stored.
+    
+    Returns:
+    DataFrame: A pandas DataFrame containing the training data.
+    """
     with fs.open(gcs_train_data_path) as f:
         df = pd.read_csv(f)
 
+    # Columns are assumed to be in the correct order
     column_names = [
-        'Date', 'Time', 'CO(GT)', 'PT08.S1(CO)', 'NMHC(GT)', 'C6H6(GT)', 'PT08.S2(NMHC)', 
-        'NOx(GT)', 'PT08.S3(NOx)', 'NO2(GT)', 'PT08.S4(NO2)', 'PT08.S5(O3)', 'T', 'RH', 'AH'
+        'Date', 'Time', 'CO(GT)', 'PT08.S1(CO)', 'NMHC(GT)', 'C6H6(GT)',
+        'PT08.S2(NMHC)', 'NOx(GT)', 'PT08.S3(NOx)', 'NO2(GT)', 'PT08.S4(NO2)',
+        'PT08.S5(O3)', 'T', 'RH', 'AH'
     ]
-    # Ensure the columns are named correctly
     df.columns = column_names
     
     return df
 
 def normalize_data(data, stats):
+    """
+    Normalizes the data using the provided statistics.
+
+    Parameters:
+    data (DataFrame): The data to be normalized.
+    stats (dict): A dictionary containing the feature means and standard deviations.
+
+    Returns:
+    DataFrame: A pandas DataFrame containing the normalized data.
+    """
     normalized_data = {}
     for column in data.columns:
         mean = stats["mean"][column]
@@ -40,12 +65,23 @@ def normalize_data(data, stats):
     return normalized_df
 
 def data_transform(df):
+    """
+    Transforms the data by setting a datetime index, and splitting it into 
+    training and validation sets. It also normalizes the features.
+    
+    Parameters:
+    df (DataFrame): The DataFrame to be transformed.
+    
+    Returns:
+    tuple: A tuple containing normalized training features, test features,
+           normalized training labels, and test labels.
+    """
     
     df['Datetime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
     df.set_index('Datetime', inplace=True)
     df.drop(columns=['Date', 'Time'], inplace=True)
 
-    # Splitting the data into training and testing sets (80% training, 20% testing)
+    # Splitting the data into training and validation sets (80% training, 20% validation)
     train, test = train_test_split(df, test_size=0.2, shuffle=False)
 
     # Separating features and target variable
@@ -57,7 +93,7 @@ def data_transform(df):
 
      # Get the json from GCS
     client = storage.Client()
-    bucket_name = 'mlops-data-ie7374' # Change this to your bucket name
+    bucket_name = os.getenv("BUCKET_NAME")
     blob_path = 'scaler/normalization_stats.json' # Change this to your blob path where the data is stored
     bucket = client.get_bucket(bucket_name)
     blob = bucket.blob(blob_path)
@@ -75,41 +111,45 @@ def data_transform(df):
 
 
 def train_model(X_train, y_train):
+    """
+    Trains a Random Forest Regressor model on the provided data.
+    
+    Parameters:
+    X_train (DataFrame): The training features.
+    y_train (Series): The training labels.
+    
+    Returns:
+    RandomForestRegressor: The trained Random Forest model.
+    """
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
     return model
 
-
-gcs_train_data_path = "gs://mlops-data-ie7374/data/train/train_data.csv" # Change this to your train data path in GCS
+# Use the MODEL_DIR environment variable for the GCS model directory
+gcs_train_data_path = f"gs://{bucket_name}/data/train/train_data.csv"
 df = load_data(gcs_train_data_path)
 X_train, X_test, y_train, y_test = data_transform(df)
 model = train_model(X_train, y_train)
 
+# Save the model locally before uploading
 local_model_path = "model.pkl"
 joblib.dump(model, local_model_path)
 
-
-
+# Get the current time in US/Eastern timezone for versioning
 edt = pytz.timezone('US/Eastern')
-
-# Get the current time in EDT
 current_time_edt = datetime.now(edt)
+version = current_time_edt.strftime('%Y%m%d_%H%M%S')
 
-version = current_time_edt.strftime('%d-%m-%Y-%H%M%S')
-
-MODEL_DIR  = os.getenv("AIP_MODEL_DIR")
-gcs_model_path = os.path.join(MODEL_DIR, "model_" + str(version) + ".pkl")
-
-storage_client = storage.Client()
+# Construct the GCS path for the model
+gcs_model_path = f"{MODEL_DIR}/model_{version}.pkl"
 bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
 bucket = storage_client.bucket(bucket_name)
 blob_model = bucket.blob(blob_path)
 blob_model.upload_from_filename(local_model_path)
 
-model_gcs_path = "gs://mlops-data-ie7374/model/" + "model_" + str(version) + ".pkl"
-
 # Use gcsfs to open a GCS file for writing
-with gcsfs.GCSFileSystem().open(model_gcs_path, 'wb') as f:
+model_gcs_path = f"gs://{bucket_name}/model/model_{version}.pkl"
+with fs.open(model_gcs_path, 'wb') as f:
     joblib.dump(model, f)
 
 

@@ -5,30 +5,25 @@
 
 The dataset used in this project is acquired from the UCI Machine Learning Repository. You can find the dataset [here](https://archive.ics.uci.edu/dataset/360/air+quality).
 
-The data is version controlled using DVC and is split into months and years. All the data transformations and splitting can be found in the `notebooks` folder.
-
-We have two primary DVC files:
-
-- `monthly_data.dvc`: This tracks all the monthly split data.
-- `raw_data.dvc`: This tracks the original data acquired from the UCI repository.
-
-The DVC-tracked data is stored on a Google Cloud Bucket.
+This data is version tracked by dvc. Refer to the dvc lab on how to use dvc to track the data.
 
 ## Data Preprocessing
+The script `data_preprocess.py` automates the preparation of datasets for a machine learning workflow targeting **CO(GT)**. On initial run, data from the first two months is assigned as training data, with the third month for testing. With each subsequent execution, the script incorporates the previous testing dataset into the training data, and the following month's data becomes the new test set. This ensures an evolving training dataset that benefits from the most recent historical data and a test dataset that is always up-to-date.
 
-**CO(GT)** is the target variable, and the other features are used as predictors. The dataset is split into training and testing subsets. The training data uses the first 2 months of data, and the testing data uses the third month's data.
+**Training and Testing Dataset Updates**  
+- **First run:** Training = Months 1-2, Testing = Month 3.
+- **Subsequent runs:** Training = Previous Training + Previous Testing, Testing = Next Month.
 
-**Normalization** <br>
+**Normalization**  
+Normalization statistics are computed from the training data and stored in GCS at `gs://YOUR_BUCKET/scaler/normalization_stats.json`. These statistics are updated in tandem with the datasets to reflect the current scale of the training data, providing consistency in the data fed into the model.
 
-To ensure the model's optimal performance, we normalize the data. The normalization statistics, specifically the `mean` and `standard deviation`, are calculated based on the training data. The calculated normalization statistics (mean and standard deviation) are stored in a Google Cloud Bucket.
 
-
-## Model Training and Building
+## Model Training, Serving and Building
 1. **Folder Structure**:
     - The main directory is `src`.
     - Inside `src`, there are two main folders: `trainer` and `serve`.
     - Each of these folders has their respective Dockerfiles, and they contain the `train.py` and `predict.py` code respectively.
-    - There's also a `build.py` script in the main directory for building and deploying the model.
+    - There's also a `build.py` script in the main directory which uses the `aiplatform` library to build and deploy the model to the Vertex AI Platform.
 ```
 src/
 |-- trainer/
@@ -40,14 +35,32 @@ src/
 |-- build.py
 ```
 
-2. **Training Code (`trainer/train.py`):**
+### Model Training Pipeline (`trainer/train.py`)
+This script orchestrates the model training pipeline, which includes data retrieval, preprocessing, model training, and exporting the trained model to Google Cloud Storage (GCS).
 
-- **Imports**: The code begins by importing necessary libraries.
-- **Loading Data**: The `load_data()` function retrieves training data from Google Cloud Storage and returns a pandas DataFrame.
-- **Data Transformation**: The `data_transform()` function splits the data into training and testing sets. This function also loads a Json file from Google Cloud Storage to normalize the training data.
-- **Model Training**: The `train_model()` function sets up and trains a RandomForestRegressor model.
-- **Model Saving**: After training, the model is saved to Google Cloud Storage with a unique timestamp as its name for versioning purposes.
-- **Docker Environment**: The Dockerfile in the `trainer` folder specifies the environment for training.
+#### Detailed Workflow
+- **Data Retrieval**: It starts by fetching the dataset from a GCS bucket using the `load_data()` function. The dataset is then properly formatted with the correct column headers.
+- **Preprocessing**: The `data_transform()` function is responsible for converting date and time into a datetime index, splitting the dataset into training and validation sets, and normalizing the data using the pre-computed statistics stored in GCS.
+- **Model Training**: A RandomForestRegressor model is trained on the preprocessed data with the `train_model()` function, which is designed to work with the features and target values separated into `X_train` and `y_train`.
+- **Model Exporting**: Upon successful training, the model is serialized to a `.pkl` file using `joblib` and uploaded back to GCS. The script ensures that each model version is uniquely identified by appending a timestamp to the model's filename.
+- **Normalization Statistics**: The normalization parameters used during preprocessing are retrieved from a JSON file in GCS, ensuring that the model applies consistent scaling to any input data.
+- **Version Control**: The script uses the current time in the US/Eastern timezone to create a version identifier for the model, ensuring traceability and organization of model versions.
+
+#### Notes on Environment Configuration:
+- A `.env` file is expected to contain environment variables `BUCKET_NAME` and `AIP_MODEL_DIR`, which are crucial for pointing to the correct GCS paths.
+- The Dockerfile within the `trainer` directory specifies the necessary Python environment for training, including all the dependencies to be installed.
+
+#### Docker Environment Configuration
+The Dockerfile located within the `trainer` directory defines the containerized environment where the training script is executed. Here's a breakdown of its content:
+- **Base Image**: Built from `python:3.9-slim`, providing a minimal Python 3.9 environment.
+- **Working Directory**: Set to the root (`/`) for simplicity and easy navigation within the container.
+- **Environment Variable**: `AIP_STORAGE_URI` is set with the GCS path where the model will be stored.
+- **Copying Training Script**: The training script located in the `trainer` directory is copied into the container.
+- **Installing Dependencies**: Essential Python libraries such as `pandas`, `scikit-learn`, and `google-cloud-storage` are installed without caching to keep the image size small.
+- **Entry Point**: The container's entry point is set to run the training script, making the container executable as a stand-alone training job.
+
+This docker image is used to train the model in the Vertex AI Platform. This image is pushed to the Google Container Registry (GCR) and used in the Vertex AI Platform to train the model.
+
 
 3. **Serving Code (`serve/predict.py`):**
 
@@ -58,25 +71,48 @@ src/
 - **Prediction**: The `/predict` route receives data, preprocesses it using the normalization parameters derived from the reference dataset, and then returns predictions.
 - **Docker Environment**: The Dockerfile in the `serve` folder specifies the environment for serving.
 
+4. **Pushing Docker Images to Google Container Registry (GCR)**
+- **Step 1: Enable APIs**
+    1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
+    2. Navigate to **APIs & Services** > **Library**.
+    3. Search for and enable the **Container Registry API** and the **Vertex AI API**.
 
-4. **Building and Deploying the Model (`build.py`)**:
+- **Step 2: Set Up Google Cloud CLI**
+    1. Install and initialize the Google Cloud CLI to authenticate and interact with Google Cloud services from the command line.
+
+- **Step 3: Configure Docker for GCR**
+    1. Authenticate Docker with GCR using the following command:
+
+    ```bash
+    gcloud auth configure-docker
+    ```
+
+- **Step 4: Create a GCR Account and Repository Folders**
+    1. In the Google Cloud Console, open the Container Registry.
+    2. Enable the Container Registry if prompted.
+    3. Create repositories using a naming convention for `[FOLDER_NAME]`.
+
+- **Step 5: Build and Push the Training Image**
+    1. Navigate to the training image directory and run:
+
+    ```bash
+    docker build -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1 .
+    docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1
+    ```
+
+- **Step 6: Build and Push the Serving Image**
+    1. In the serving image directory, execute:
+
+    ```bash
+    docker build -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1 .
+    docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1
+    ```
+Replace `[YOUR_PROJECT_ID]` and `[FOLDER_NAME]` with your actual project ID and the folder names.
+
+5. **Building and Deploying the Model (`build.py`)**:
     - This script uses Google Cloud's aiplatform library to initialize the Vertex AI setup.
     - It defines the model's display name, container URI, and other deployment parameters.
     - The custom container training job is created, and the model is run and deployed to an endpoint.
-
-In order to build the train and serve images, run the following commands:
-
-**For training image:**<br>
-`docker build -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1 .` <br>
-`docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1` <br>
-
-**For serving image:**<br>
-`docker build -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1 .` <br>
-`docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1`  <br>
-
-Upon completion, your Docker images for training and serving will be available in the Google Container Registry.
-Here, `[YOUR_PROJECT_ID]` and `[FOLDER_NAME]` are placeholders, and you should replace them with their respective Google Cloud project ID and folder name.
-
 The `build.py` script contains several essential configurations for setting up and deploying your model. Here's a breakdown of these configurations and what they represent:
 
 

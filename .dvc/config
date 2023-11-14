@@ -1,5 +1,5 @@
 [core]
-    remote = timeseries
-['remote "timeseries"']
-    url = gs://mlops-data-ie7374
-    credentialpath = E:\NEU\TA\weighty-forest-399219-3af0a085b385.json
+    remote = tse2e
+['remote "tse2e"']
+    url = gs://mlops_fall23
+    credentialpath = E:\NEU\TA\Keys\bubbly-polygon-404522-ba0245de2400.json
