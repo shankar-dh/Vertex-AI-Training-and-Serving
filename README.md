@@ -59,8 +59,9 @@ The Dockerfile located within the `trainer` directory defines the containerized 
 - **Installing Dependencies**: Essential Python libraries such as `pandas`, `scikit-learn`, and `google-cloud-storage` are installed without caching to keep the image size small.
 - **Entry Point**: The container's entry point is set to run the training script, making the container executable as a stand-alone training job.
 
-This docker image is used to train the model in the Vertex AI Platform. This image is pushed to the Google Container Registry (GCR) and used in the Vertex AI Platform to train the model.
+The provided Docker image is purpose-built for training machine learning models on Google Cloud's [Vertex AI Platform](https://cloud.google.com/vertex-ai?hl=en). Vertex AI is an end-to-end platform that facilitates the development and deployment of ML models. It streamlines the ML workflow, from data analysis to model training and deployment, leveraging Google Cloud's scalable infrastructure.
 
+Upon pushing this Docker image to the Google Container Registry (GCR), it becomes accessible for Vertex AI to execute the model training at scale. The image contains the necessary environment setup, including all the dependencies and the `trainer/train.py` script, ensuring that the model training is consistent and reproducible. 
 
 3. **Serving Code (`serve/predict.py`):**
 
