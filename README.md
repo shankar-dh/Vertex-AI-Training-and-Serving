@@ -16,6 +16,13 @@ The script `data_preprocess.py` automates the preparation of datasets for a mach
 Normalization statistics are computed from the training data and stored in GCS at `gs://YOUR_BUCKET/scaler/normalization_stats.json`. These statistics are updated in tandem with the datasets to reflect the current scale of the training data, providing consistency in the data fed into the model.
 
 
+- To push the file into the GCS ensure that you have created a service account with Storage Admin role and downloaded the json file. Then run the following command to authenticate the service account.
+```bash
+gcloud auth activate-service-account --key-file=service_account.json
+```
+**Note:** 
+>You would have already done this step when you would have configured the dvc pipeline. If you have not done that please refer to the dvc lab. <br>
+
 ## Model Training, Serving and Building
 1. **Folder Structure**:
     - The main directory is `src`.
@@ -61,16 +68,31 @@ The provided Docker image is purpose-built for training machine learning models 
 
 Upon pushing this Docker image to the Google Container Registry (GCR), it becomes accessible for Vertex AI to execute the model training at scale. The image contains the necessary environment setup, including all the dependencies and the `trainer/train.py` script, ensuring that the model training is consistent and reproducible. 
 
-3. **Serving Code (`serve/predict.py`):**
+### Model Serving Pipeline (`serve/predict.py`)
+This script handles the model serving pipeline, which includes loading the most recent model from Google Cloud Storage (GCS), preprocessing incoming prediction requests, and providing prediction results via a Flask API.
 
-- **Setup**: This code sets up a Flask application to serve predictions.
-- **Initialization**: Initializes global variables and loads the latest trained model from Google Cloud Storage.
-- **Normalization**: The same reference JSON file used in the training phase (loaded from Google Cloud Storage) is utilized to normalize incoming data for prediction, ensuring consistency between training and prediction phases.
-- **Health Check**: The `/ping` route checks the health of the application.
-- **Prediction**: The `/predict` route receives data, preprocesses it using the normalization parameters derived from the reference dataset, and then returns predictions.
-- **Docker Environment**: The Dockerfile in the `serve` folder specifies the environment for serving.
+#### Detailed Workflow
+- **Model Loading**: At startup, the `fetch_latest_model` function retrieves the most current model file from the specified GCS bucket, determined by the latest timestamp in the model file names.
+- **Normalization Statistics**: It loads normalization statistics from a JSON file in GCS, which is used to normalize prediction input data consistently.
+- **Flask API**: The Flask app exposes two endpoints: one for health checks (`/ping`) and another for processing predictions (`/predict`). The health check endpoint ensures that the service is running correctly, while the predict endpoint expects a POST request with input instances.
+- **Data Preprocessing**: Incoming data in the prediction requests are normalized using the `normalize_data` function, which applies the previously loaded normalization statistics.
+- **Prediction**: The preprocessed data is then fed into the RandomForestRegressor model to predict the output, which is returned as a JSON response.
 
-4. **Pushing Docker Images to Google Container Registry (GCR)**
+#### Environment Configuration Notes:
+- The environment variables `AIP_STORAGE_URI`, `AIP_HEALTH_ROUTE`, `AIP_PREDICT_ROUTE`, and `AIP_HTTP_PORT` are set within the Dockerfile and are crucial for defining the GCS path, API routes, and the port the Flask app runs on.
+- The Docker environment configuration specifies the necessary Python environment for the Flask application, including all dependencies that are installed.
+
+#### Docker Environment Configuration
+- **Base Image**: Utilizes `python:3.9-slim` as a minimal Python 3.9 base image.
+- **Working Directory**: The working directory in the container is set to `/app` for a clean workspace.
+- **Environment Variables**: Sets up environment variables needed for the Flask app to correctly interface with Google Cloud services and define API behavior.
+- **Copying Serving Script**: The `serve.py` script is copied from the local `serving` directory into the container's `/app` directory.
+- **Installing Dependencies**: Installs Flask, `google-cloud-storage`, `joblib`, `scikit-learn`, and `grpcio` using `pip` with no cache to minimize the Docker image size.
+- **Entry Point**: The Dockerfile's entry point is configured to run the `serve.py` script, which starts the Flask application when the container is run.
+
+### Pushing Docker Images to Google Artficat Registry
+Download Google cloud SDK based on your OS from [here](https://cloud.google.com/sdk/docs/install) and ensure Docker daemon is running. Follow the below steps to push the docker images to Google Artifact Registry.
+
 - **Step 1: Enable APIs**
     1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
     2. Navigate to **APIs & Services** > **Library**.
@@ -78,35 +100,45 @@ Upon pushing this Docker image to the Google Container Registry (GCR), it become
 
 - **Step 2: Set Up Google Cloud CLI**
     1. Install and initialize the Google Cloud CLI to authenticate and interact with Google Cloud services from the command line.
+        ```bash
+        gcloud auth login
+        gcloud config set project [YOUR_PROJECT_ID]
+        ```
 
 - **Step 3: Configure Docker for GCR**
-    1. Authenticate Docker with GCR using the following command:
-
-    ```bash
-    gcloud auth configure-docker
-    ```
+    1. Give the service account (the one you used for dvc which has bucket access) Artifact Registry Administrator permissions to the project:
+    Go to IAM & Admin > IAM and add the service account. Find your service account in the list of service accounts and click the pencil icon to edit. Add the Artifact Registry Administrator role to the service account. Download the JSON key for the service account and save it as `key.json` in the root directory of the project.
+        ```bash
+        gcloud auth activate-service-account --key-file=key.json
+        ```
+    2. Configure Docker to use the gcloud command-line tool as a credential helper:
+        ```bash
+        gcloud auth configure-docker us-east1-docker.pkg.dev
+        ```
 
 - **Step 4: Create a GCR Account and Repository Folders**
-    1. In the Google Cloud Console, open the Container Registry.
-    2. Enable the Container Registry if prompted.
-    3. Create repositories using a naming convention for `[FOLDER_NAME]`.
+    1. In the Google Cloud Console, open the Artifact Registry.
+    2. Create repositories using a naming convention for `[FOLDER_NAME]`.
 
 - **Step 5: Build and Push the Training Image**
-    1. Navigate to the training image directory and run:
+    1. Navigate to the src directory and run:
 
     ```bash
-    docker build -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1 .
+    docker build -f trainer/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1 .
     docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1
     ```
 
 - **Step 6: Build and Push the Serving Image**
-    1. In the serving image directory, execute:
+    1. Navigate to the src directory and run:
 
     ```bash
-    docker build -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1 .
+    docker build -f serve/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1 .
     docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1
     ```
-Replace `[YOUR_PROJECT_ID]` and `[FOLDER_NAME]` with your actual project ID and the folder names.
+
+    **Note:** 
+    > Run the above docker bash codes inside the src directory. <br>
+
 
 5. **Building and Deploying the Model (`build.py`)**:
     - This script uses Google Cloud's aiplatform library to initialize the Vertex AI setup.
