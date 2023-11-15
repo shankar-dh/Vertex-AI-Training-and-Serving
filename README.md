@@ -1,8 +1,37 @@
 # Timeseries MLOps Project
 
+This project outlines the steps for setting up a Machine Learning Operations (MLOps) pipeline using Google Cloud services for a time series dataset.
+
+## Project Configuration
+Create a `.env` file in the root of your project directory with the following content. This file should not be committed to your version control system so add it to your `.gitignore` file. This file will be used to store the environment variables used in the project. You can change the values of the variables as per your requirements.
+```
+# Google Cloud Storage bucket name
+BUCKET_NAME= [YOUR_BUCKET]
+
+# Google Cloud AI Platform model directory
+AIP_MODEL_DIR=gs://[YOUR_BUCKET]/model
+
+# Google Cloud region
+REGION=us-east1
+
+# Google Cloud project ID
+PROJECT_ID=[YOUR_PROJECT_ID]
+
+# Container URI for training
+CONTAINER_URI=us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/timeseries/train:v1
+
+# Container URI for model serving
+MODEL_SERVING_CONTAINER_IMAGE_URI=us-east1-docker.pkg.dev/YOUR_PROJECT_ID/timeseries/serve:v1
+
+# Health check route for the AI Platform model
+AIP_HEALTH_ROUTE=/ping
+
+# Prediction route for the AI Platform model
+AIP_PREDICT_ROUTE=/predict
+```
+You will get to know about the usage of these variables in the later sections of the project. Replace the placeholders such as `[YOUR_BUCKET]`, `[YOUR_PROJECT_ID]` with the appropriate values relevant to your setup. [YOUR_BUCKET] should be the name of your GCS bucket. [YOUR_PROJECT_ID] should be the name of your GCP project ID.
 
 ## Data Source
-
 The dataset used in this project is acquired from the UCI Machine Learning Repository. You can find the dataset [here](https://archive.ics.uci.edu/dataset/360/air+quality). This data is version tracked by dvc. Refer to the dvc lab on how to use dvc to track the data.
 
 **Note:**
@@ -150,51 +179,39 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
 The `build.py` script is responsible for [building and deploying the model to the Vertex AI Platform](https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform.CustomContainerTrainingJob
 ). It uses the `aiplatform` library to create a custom container training job and deploy the model to an endpoint.  The CustomContainerTrainingJob class is a part of Google Cloud's Vertex AI Python client library, which allows users to create and manage custom container training jobs for machine learning models. A custom container training job enables you to run your training application in a Docker container that you can customize.
 
-1. **REGION**:
-   - Description: Specifies the Google Cloud region where your resources will be allocated and where operations will be performed.
-   - Example:
-     ```python
-     REGION = '[YOUR_REGION]'
-     ```
-     *Replace `[YOUR_REGION]` with your desired region, e.g., `us-east1`.*
+#### Steps to Build and Deploy the Model
+1. **Initialize Environment Variables**: The script starts by loading the environment variables such as the region, project ID, bucket, and container URIs using the `initialize_variables` function.
 
-2. **PROJECT_ID**:
-   - Description: Your Google Cloud Project ID.
-   - Example:
-     ```python
-     PROJECT_ID = '[YOUR_PROJECT_ID]'
-     ```
-     *Replace `[YOUR_PROJECT_ID]` with your specific Google Cloud project ID.*
+2. **Initialize AI Platform**: With the `initialize_aiplatform` function, the Google Cloud AI platform is initialized using the project ID, region, and staging bucket details.
 
-3. **bucket**:
-   - Description: The Google Cloud Storage (GCS) bucket where your model will be stored. This should match the `AIP_STORAGE_URI` specified in your Dockerfile.
-   - Example:
-     ```python
-     bucket = 'gs://[YOUR_BUCKET_NAME]/model/'
-     ```
+3. **Create and Run Training Job**: The `create_and_run_job` function creates a `CustomContainerTrainingJob` using the specified container URIs and then starts the training job.
 
-4. **container_uri**:
-   - Description: The URI for the Docker container of your training application.
-   - Example:
-     ```python
-     container_uri = 'us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1'
-     ```
+4. **Deploy Model**: After the training job completes, the `deploy_model` function deploys the trained model to an AI Platform endpoint, using the provided model display name.
 
-5. **model_serving_container_image_uri**:
-   - Description: The URI for the Docker container that will serve your model for predictions.
-   - Example:
-     ```python
-     model_serving_container_image_uri = 'us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1'
-     ```
-
-6. **display_name**:
-   - Description: A name to display for your model in the interface.
-   - Example:
-     ```python
-     display_name = '[YOUR_MODEL_DISPLAY_NAME]'
-     ```
-
-Make sure to replace the placeholders such as `[YOUR_REGION]`, `[YOUR_PROJECT_ID]`, `[YOUR_BUCKET_NAME]`, `[FOLDER_NAME]`, and `[YOUR_MODEL_DISPLAY_NAME]` with the appropriate values relevant to your setup.
+- When you run this code the aiplatform library will create a custom container training job and deploy the model to an endpoint. It uses both the dockerfiles to build the training and serving images. The training image is used to train the model and the serving image is used to serve the model.
+- Once the model is deployed to the endpoint you can use the prediction code to get the predictions from the model. This is online prediction so you can give API requests to the model and get the predictions. The prediction route expects a POST request with the input instances. The input instances to the endpoint should be in the following format:
+```
+{
+    "instances": [
+        {
+            "Time": "18.00.00",
+            "CO(GT)": 2.6,
+            "PT08.S1(CO)": 1360,
+            "NMHC(GT)": 150,
+            "C6H6(GT)": 11.9,
+            "PT08.S2(NMHC)": 1046,
+            "NOx(GT)": 166,
+            "PT08.S3(NOx)": 1056,
+            "NO2(GT)": 113,
+            "PT08.S4(NO2)": 1692,
+            "PT08.S5(O3)": 1268,
+            "T": 13.6,
+            "RH": 48.9,
+            "AH": 0.7578
+        }
+    ]
+}
+```
 
 **Note**:
 > There are multiple configuration options available in vertex AI other than these parameters. Please refer to the [documentation](https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform.CustomContainerTrainingJob) for more information. <br>
@@ -205,7 +222,6 @@ The advantages of using a custom training job over a normal training job in Vert
 - Ability to integrate with existing CI/CD workflows and toolchains.
 - Custom training logic and advanced machine learning experimentation that might not be supported by standard training options.
 
-Once you have configured all these steps run `python build.py` to build and deploy the model in the Vertex AI Platform.
 
 ## Continous Model retraining with Airflow
 ### Workflow Overview:<br><br>
