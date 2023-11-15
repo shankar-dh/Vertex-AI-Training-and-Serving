@@ -21,7 +21,7 @@ Normalization statistics are computed from the training data and stored in GCS a
 gcloud auth activate-service-account --key-file=service_account.json
 ```
 **Note:** 
->You would have already done this step when you would have configured the dvc pipeline. If you have not done that please refer to the dvc lab. <br>
+>You would have already done this step when you would have configured the dvc pipeline. If you have not done that please refer to the dvc lab. If you havent done this step you would get errors while saving the file in GCS <br>
 
 ## Model Training, Serving and Building
 1. **Folder Structure**:
@@ -124,7 +124,7 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
     1. Navigate to the src directory and run:
 
     ```bash
-    docker build -f trainer/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1 .
+    docker build -f trainer/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1 trainer/
     docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1
     ```
 
@@ -132,7 +132,7 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
     1. Navigate to the src directory and run:
 
     ```bash
-    docker build -f serve/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1 .
+    docker build -f serve/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1 serve/
     docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1
     ```
 
