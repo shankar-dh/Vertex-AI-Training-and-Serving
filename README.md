@@ -3,9 +3,7 @@
 
 ## Data Source
 
-The dataset used in this project is acquired from the UCI Machine Learning Repository. You can find the dataset [here](https://archive.ics.uci.edu/dataset/360/air+quality).
-
-This data is version tracked by dvc. Refer to the dvc lab on how to use dvc to track the data.
+The dataset used in this project is acquired from the UCI Machine Learning Repository. You can find the dataset [here](https://archive.ics.uci.edu/dataset/360/air+quality). This data is version tracked by dvc. Refer to the dvc lab on how to use dvc to track the data.
 
 ## Data Preprocessing
 The script `data_preprocess.py` automates the preparation of datasets for a machine learning workflow targeting **CO(GT)**. On initial run, data from the first two months is assigned as training data, with the third month for testing. With each subsequent execution, the script incorporates the previous testing dataset into the training data, and the following month's data becomes the new test set. This ensures an evolving training dataset that benefits from the most recent historical data and a test dataset that is always up-to-date.
