@@ -13,11 +13,11 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Initialize a gcsfs file system object
+# Initialize variables
 fs = gcsfs.GCSFileSystem()
 storage_client = storage.Client()
 bucket_name = os.getenv("BUCKET_NAME")
-MODEL_DIR = os.getenv("AIP_MODEL_DIR")
+model_dir = os.getenv("AIP_MODEL_DIR")
 
 def load_data(gcs_train_data_path):
     """
@@ -109,7 +109,6 @@ def data_transform(df):
     return X_train_scaled, X_test, y_train_scaled, y_test
 
 
-
 def train_model(X_train, y_train):
     """
     Trains a Random Forest Regressor model on the provided data.
@@ -125,34 +124,45 @@ def train_model(X_train, y_train):
     model.fit(X_train, y_train)
     return model
 
-# Use the MODEL_DIR environment variable for the GCS model directory
-gcs_train_data_path = f"gs://{bucket_name}/data/train/train_data.csv"
-df = load_data(gcs_train_data_path)
-X_train, X_test, y_train, y_test = data_transform(df)
-model = train_model(X_train, y_train)
+def save_and_upload_model(model, local_model_path, gcs_model_path):
+    """
+    Saves the model locally and uploads it to GCS.
+    
+    Parameters:
+    model (RandomForestRegressor): The trained model to be saved and uploaded.
+    local_model_path (str): The local path to save the model.
+    gcs_model_path (str): The GCS path to upload the model.
+    """
+    # Save the model locally
+    joblib.dump(model, local_model_path)
 
-# Save the model locally before uploading
-local_model_path = "model.pkl"
-joblib.dump(model, local_model_path)
+    # Upload the model to GCS
+    with fs.open(gcs_model_path, 'wb') as f:
+        joblib.dump(model, f)
 
-# Get the current time in US/Eastern timezone for versioning
-edt = pytz.timezone('US/Eastern')
-current_time_edt = datetime.now(edt)
-version = current_time_edt.strftime('%Y%m%d_%H%M%S')
+def main():
+    """
+    Main function to orchestrate the loading of data, training of the model,
+    and uploading the model to Google Cloud Storage.
+    """
+    # Load and transform data
+    gcs_train_data_path = f"gs://{bucket_name}/data/train/train_data.csv"
+    df = load_data(gcs_train_data_path)
+    X_train, X_test, y_train, y_test = data_transform(df)
 
-# Construct the GCS path for the model
-gcs_model_path = f"{MODEL_DIR}/model_{version}.pkl"
-bucket_name, blob_path = gcs_model_path.split("gs://")[1].split("/", 1)
-bucket = storage_client.bucket(bucket_name)
-blob_model = bucket.blob(blob_path)
-blob_model.upload_from_filename(local_model_path)
+    # Train the model
+    model = train_model(X_train, y_train)
 
-# Use gcsfs to open a GCS file for writing
-model_gcs_path = f"gs://{bucket_name}/model/model_{version}.pkl"
-with fs.open(model_gcs_path, 'wb') as f:
-    joblib.dump(model, f)
+    # Save the model locally and upload to GCS
+    edt = pytz.timezone('US/Eastern')
+    current_time_edt = datetime.now(edt)
+    version = current_time_edt.strftime('%Y%m%d_%H%M%S')
+    local_model_path = "model.pkl"
+    gcs_model_path = f"gs://{bucket_name}/{model_dir}/model_{version}.pkl"
+    save_and_upload_model(model, local_model_path, gcs_model_path)
 
-
+if __name__ == "__main__":
+    main()
 
 
 

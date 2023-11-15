@@ -5,6 +5,9 @@
 
 The dataset used in this project is acquired from the UCI Machine Learning Repository. You can find the dataset [here](https://archive.ics.uci.edu/dataset/360/air+quality). This data is version tracked by dvc. Refer to the dvc lab on how to use dvc to track the data.
 
+**Note:**
+> We are only tracking the raw data using dvc. The preprocessed data is not tracked by dvc. <br>
+
 ## Data Preprocessing
 The script `data_preprocess.py` automates the preparation of datasets for a machine learning workflow targeting **CO(GT)**. On initial run, data from the first two months is assigned as training data, with the third month for testing. With each subsequent execution, the script incorporates the previous testing dataset into the training data, and the following month's data becomes the new test set. This ensures an evolving training dataset that benefits from the most recent historical data and a test dataset that is always up-to-date.
 
@@ -90,7 +93,7 @@ This script handles the model serving pipeline, which includes loading the most 
 - **Installing Dependencies**: Installs Flask, `google-cloud-storage`, `joblib`, `scikit-learn`, and `grpcio` using `pip` with no cache to minimize the Docker image size.
 - **Entry Point**: The Dockerfile's entry point is configured to run the `predict.py` script, which starts the Flask application when the container is run.
 
-### Pushing Docker Images to Google Artficat Registry
+### Pushing Docker Images to Google Artifact Registry
 Download Google cloud SDK based on your OS from [here](https://cloud.google.com/sdk/docs/install) and ensure Docker daemon is running. Follow the below steps to push the docker images to Google Artifact Registry.
 
 - **Step 1: Enable APIs**
@@ -139,13 +142,13 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
     **Note:** 
     > Run the above docker bash codes inside the src directory. <br>
 
+**Reference:** <br>
+[Create a custom container image for training (Vertex AI)](https://cloud.google.com/vertex-ai/docs/training/create-custom-container)
 
-5. **Building and Deploying the Model (`build.py`)**:
-    - This script uses Google Cloud's aiplatform library to initialize the Vertex AI setup.
-    - It defines the model's display name, container URI, and other deployment parameters.
-    - The custom container training job is created, and the model is run and deployed to an endpoint.
-The `build.py` script contains several essential configurations for setting up and deploying your model. Here's a breakdown of these configurations and what they represent:
+### Building and Deploying the Model (`build.py`)
 
+The `build.py` script is responsible for [building and deploying the model to the Vertex AI Platform](https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform.CustomContainerTrainingJob
+). It uses the `aiplatform` library to create a custom container training job and deploy the model to an endpoint.  The CustomContainerTrainingJob class is a part of Google Cloud's Vertex AI Python client library, which allows users to create and manage custom container training jobs for machine learning models. A custom container training job enables you to run your training application in a Docker container that you can customize.
 
 1. **REGION**:
    - Description: Specifies the Google Cloud region where your resources will be allocated and where operations will be performed.
@@ -192,6 +195,15 @@ The `build.py` script contains several essential configurations for setting up a
      ```
 
 Make sure to replace the placeholders such as `[YOUR_REGION]`, `[YOUR_PROJECT_ID]`, `[YOUR_BUCKET_NAME]`, `[FOLDER_NAME]`, and `[YOUR_MODEL_DISPLAY_NAME]` with the appropriate values relevant to your setup.
+
+**Note**:
+> There are multiple configuration options available in vertex AI other than these parameters. Please refer to the [documentation](https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform.CustomContainerTrainingJob) for more information. <br>
+
+The advantages of using a custom training job over a normal training job in Vertex AI include:
+- Greater flexibility with container images, allowing for specific dependencies and configurations.
+- More control over the training environment and resources.
+- Ability to integrate with existing CI/CD workflows and toolchains.
+- Custom training logic and advanced machine learning experimentation that might not be supported by standard training options.
 
 Once you have configured all these steps run `python build.py` to build and deploy the model in the Vertex AI Platform.
 
