@@ -86,9 +86,9 @@ This script handles the model serving pipeline, which includes loading the most 
 - **Base Image**: Utilizes `python:3.9-slim` as a minimal Python 3.9 base image.
 - **Working Directory**: The working directory in the container is set to `/app` for a clean workspace.
 - **Environment Variables**: Sets up environment variables needed for the Flask app to correctly interface with Google Cloud services and define API behavior.
-- **Copying Serving Script**: The `serve.py` script is copied from the local `serving` directory into the container's `/app` directory.
+- **Copying Serving Script**: The `predict.py` script is copied from the local `serving` directory into the container's `/app` directory.
 - **Installing Dependencies**: Installs Flask, `google-cloud-storage`, `joblib`, `scikit-learn`, and `grpcio` using `pip` with no cache to minimize the Docker image size.
-- **Entry Point**: The Dockerfile's entry point is configured to run the `serve.py` script, which starts the Flask application when the container is run.
+- **Entry Point**: The Dockerfile's entry point is configured to run the `predict.py` script, which starts the Flask application when the container is run.
 
 ### Pushing Docker Images to Google Artficat Registry
 Download Google cloud SDK based on your OS from [here](https://cloud.google.com/sdk/docs/install) and ensure Docker daemon is running. Follow the below steps to push the docker images to Google Artifact Registry.
