@@ -3,10 +3,27 @@
 This project outlines the steps for setting up a Machine Learning Operations (MLOps) pipeline using Google Cloud services for a time series dataset.
 
 ## Project Configuration
+**⚠️ Important** <br>
+Goto IAM & Admin > service accounts and create a service account with the following roles:
+- Storage Admin
+- Vertex AI Admin
+- AI Platform Admin
+- Artifact Registry Administrator
+- Service Account Admin
+
+Download the json file for the service account and save it in your system safely. You will need this file to authenticate the service account. To authenticate the service account run the following command:
+```bash
+gcloud auth activate-service-account --key-file=service_account.json
+```
+Replace `service_account.json` with the name of the json file you downloaded.
+
 Create a `.env` file in the root of your project directory with the following content. This file should not be committed to your version control system so add it to your `.gitignore` file. This file will be used to store the environment variables used in the project. You can change the values of the variables as per your requirements.
 ```
 # Google Cloud Storage bucket name
 BUCKET_NAME= [YOUR_BUCKET]
+
+# Google Cloud Storage bucket directory for storing the data
+BASE_OUTPUT_DIR=gs://[YOUR_BUCKET]
 
 # Google Cloud AI Platform model directory
 AIP_MODEL_DIR=gs://[YOUR_BUCKET]/model
@@ -18,19 +35,21 @@ REGION=us-east1
 PROJECT_ID=[YOUR_PROJECT_ID]
 
 # Container URI for training
-CONTAINER_URI=us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/timeseries/train:v1
+CONTAINER_URI=us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/trainer:v1
 
 # Container URI for model serving
-MODEL_SERVING_CONTAINER_IMAGE_URI=us-east1-docker.pkg.dev/YOUR_PROJECT_ID/timeseries/serve:v1
+MODEL_SERVING_CONTAINER_IMAGE_URI=us-east1-docker.pkg.dev/YOUR_PROJECT_ID/[FOLDER_NAME]/serve:v1
 
 # Health check route for the AI Platform model
 AIP_HEALTH_ROUTE=/ping
 
 # Prediction route for the AI Platform model
 AIP_PREDICT_ROUTE=/predict
-```
-You will get to know about the usage of these variables in the later sections of the project. Replace the placeholders such as `[YOUR_BUCKET]`, `[YOUR_PROJECT_ID]` with the appropriate values relevant to your setup. [YOUR_BUCKET] should be the name of your GCS bucket. [YOUR_PROJECT_ID] should be the name of your GCP project ID.
 
+# Service account key file path
+SERVICE_ACCOUNT_EMAIL= [YOUR_SERVICE_ACCOUNT_EMAIL]
+```
+You will get to know about the usage of these variables in the later sections of the project. [YOUR_PROJECT_ID] should be the name of your GCP project ID, [FOLDER_NAME] should be the name of the folder in which you want to store the docker images in the Artifact Registry. [YOUR_SERVICE_ACCOUNT_EMAIL] should be the email address of the service account you created.
 
 Ensure you have all the necessary Python packages installed to run the project by using the `requirements.txt` file. Run the following command to install the packages.
 ```bash
@@ -53,13 +72,6 @@ The script `data_preprocess.py` automates the preparation of datasets for a mach
 **Normalization**  
 Normalization statistics are computed from the training data and stored in GCS at `gs://YOUR_BUCKET/scaler/normalization_stats.json`. These statistics are updated in tandem with the datasets to reflect the current scale of the training data, providing consistency in the data fed into the model.
 
-
-- To push the file into the GCS ensure that you have created a service account with Storage Admin role and downloaded the json file. Then run the following command to authenticate the service account.
-```bash
-gcloud auth activate-service-account --key-file=service_account.json
-```
-**Note:** 
->You would have already done this step when you would have configured the dvc pipeline. If you have not done that please refer to the dvc lab. If you havent done this step you would get errors while saving the file in GCS <br>
 
 ## Model Training, Serving and Building
 1. **Folder Structure**:
@@ -162,16 +174,18 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
     1. Navigate to the src directory and run:
 
     ```bash
-    docker build -f trainer/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1 trainer/
-    docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/train:v1
+    docker build -f trainer/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/trainer:v1 .
+    docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/trainer:v1
+
     ```
 
 - **Step 6: Build and Push the Serving Image**
     1. Navigate to the src directory and run:
 
     ```bash
-    docker build -f serve/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1 serve/
+    docker build -f serve/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1 .
     docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1
+
     ```
 
     **Note:** 
@@ -182,42 +196,19 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
 
 ### Building and Deploying the Model (`build.py`)
 
-The `build.py` script is responsible for [building and deploying the model to the Vertex AI Platform](https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform.CustomContainerTrainingJob
-). It uses the `aiplatform` library to create a custom container training job and deploy the model to an endpoint.  The CustomContainerTrainingJob class is a part of Google Cloud's Vertex AI Python client library, which allows users to create and manage custom container training jobs for machine learning models. A custom container training job enables you to run your training application in a Docker container that you can customize.
+The `build.py` script is responsible for building and deploying the model to the Vertex AI Platform. It uses the `aiplatform` library to create a custom container training job and deploy the model to an endpoint.  The CustomContainerTrainingJob class is a part of Google Cloud's Vertex AI Python client library, which allows users to create and manage custom container training jobs for machine learning models. A custom container training job enables you to run your training application in a Docker container that you can customize.
 
 #### Steps to Build and Deploy the Model
 1. **Initialize Environment Variables**: The script starts by loading the environment variables such as the region, project ID, bucket, and container URIs using the `initialize_variables` function.
 
-2. **Initialize AI Platform**: With the `initialize_aiplatform` function, the Google Cloud AI platform is initialized using the project ID, region, and staging bucket details.
+2. **Initialize AI Platform**: With the `initialize_aiplatform` function, the Google Cloud AI platform is initialized using the project ID, region, and staging bucket details. This also binds the service account to the AI Platform which is crucial for the training job to access the GCS bucket and other Google Cloud services.
 
 3. **Create and Run Training Job**: The `create_and_run_job` function creates a `CustomContainerTrainingJob` using the specified container URIs and then starts the training job.
 
 4. **Deploy Model**: After the training job completes, the `deploy_model` function deploys the trained model to an AI Platform endpoint, using the provided model display name.
 
 - When you run this code the aiplatform library will create a custom container training job and deploy the model to an endpoint. It uses both the dockerfiles to build the training and serving images. The training image is used to train the model and the serving image is used to serve the model.
-- Once the model is deployed to the endpoint you can use the prediction code to get the predictions from the model. This is online prediction so you can give API requests to the model and get the predictions. The prediction route expects a POST request with the input instances. The input instances to the endpoint should be in the following format:
-```
-{
-    "instances": [
-        {
-            "Time": "18.00.00",
-            "CO(GT)": 2.6,
-            "PT08.S1(CO)": 1360,
-            "NMHC(GT)": 150,
-            "C6H6(GT)": 11.9,
-            "PT08.S2(NMHC)": 1046,
-            "NOx(GT)": 166,
-            "PT08.S3(NOx)": 1056,
-            "NO2(GT)": 113,
-            "PT08.S4(NO2)": 1692,
-            "PT08.S5(O3)": 1268,
-            "T": 13.6,
-            "RH": 48.9,
-            "AH": 0.7578
-        }
-    ]
-}
-```
+
 
 **Note**:
 > There are multiple configuration options available in vertex AI other than these parameters. Please refer to the [documentation](https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform.CustomContainerTrainingJob) for more information. <br>
@@ -227,6 +218,28 @@ The advantages of using a custom training job over a normal training job in Vert
 - More control over the training environment and resources.
 - Ability to integrate with existing CI/CD workflows and toolchains.
 - Custom training logic and advanced machine learning experimentation that might not be supported by standard training options.
+
+If everything is set up correctly you should be able to see the following screen under Vertex AI > Model Registry
+![Prediction_Page](images/deployment.png)
+
+Once the model is deployed to an endpoint, you can utilize the `inference.py` script to generate predictions from the model. The `predict_custom_trained_model` function serves as a REST API endpoint, enabling you to obtain predictions by sending it instance data. This function constructs a prediction request tailored to the model's expected input schema and transmits it to the deployed model on Vertex AI. The resulting prediction outcomes are then displayed.
+
+Additionally, you can configure model monitoring for the endpoint, specifying the monitoring interval and the threshold for determining when the model is considered unhealthy. You can also set up notification mechanisms to receive alerts when the model falls into an unhealthy state. Furthermore, you can implement autoscaling for the endpoint, defining the minimum and maximum number of instances and the threshold for triggering automatic scaling adjustments. 
+
+![Model_Monitoring](images/Model_Monitoring.png)
+
+**Note**:
+You could have setup model monitoring and autoscaling in the `build.py` script. However, for the sake of simplicity, we have not included those features in this project. Please refer to the [documentation](https://cloud.google.com/vertex-ai/docs/general/deployment#aiplatform_deploy_model_custom_trained_model_sample-python_vertex_ai_sdk) for more information on how to implement those features. This could also be done via the Vertex AI UI.
+
+
+
+**Reference:** <br>
+[Custom Service Account Configuration](https://cloud.google.com/vertex-ai/docs/general/custom-service-account) <br>
+[Deploying Model to endpoint](https://cloud.google.com/vertex-ai/docs/general/deployment) <br>
+[Online Predictions from Custom Model](https://cloud.google.com/vertex-ai/docs/predictions/get-online-predictions) <br>
+[Batch Prediction from Custom Trained Model](https://cloud.google.com/vertex-ai/docs/predictions/get-batch-predictions) <br>
+[Custom Container Training Job](https://cloud.google.com/vertex-ai/docs/training/create-custom-container) <br>
+
 
 
 ## Continous Model retraining with Airflow
