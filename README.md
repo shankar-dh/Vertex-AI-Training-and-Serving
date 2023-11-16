@@ -223,7 +223,7 @@ Additionally, you can configure model monitoring for the endpoint, specifying th
 
 ![Model_Monitoring](images/Model_Monitoring.png)
 
-The prediction from `inferece.py` is known as online prediction. You can also generate predictions in batch mode. Batch prediction is a feature of Vertex AI that enables you to generate predictions on a large dataset in a single request. Batch prediction is useful when you need to generate predictions on a large dataset, such as a daily weather forecast, or when you need to generate predictions on a schedule, such as every hour. Batch prediction is also useful when you need to generate predictions on demand, such as when you have a large number of incoming requests at the same time. Reger to the reference section for more information on batch prediction.
+The prediction from `inference.py` is known as online prediction. You can also generate predictions in batch mode. Batch prediction is a feature of Vertex AI that enables you to generate predictions on a large dataset in a single request. Batch prediction is useful when you need to generate predictions on a large dataset, such as a daily weather forecast, or when you need to generate predictions on a schedule, such as every hour. Batch prediction is also useful when you need to generate predictions on demand, such as when you have a large number of incoming requests at the same time. Reger to the reference section for more information on batch prediction.
 
 
 **Reference:** <br>
