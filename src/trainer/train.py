@@ -17,7 +17,7 @@ load_dotenv()
 fs = gcsfs.GCSFileSystem()
 storage_client = storage.Client()
 bucket_name = os.getenv("BUCKET_NAME")
-model_dir = os.getenv("AIP_MODEL_DIR")
+MODEL_DIR = os.getenv("AIP_MODEL_DIR")
 
 def load_data(gcs_train_data_path):
     """
@@ -158,7 +158,7 @@ def main():
     current_time_edt = datetime.now(edt)
     version = current_time_edt.strftime('%Y%m%d_%H%M%S')
     local_model_path = "model.pkl"
-    gcs_model_path = f"gs://{bucket_name}/{model_dir}/model_{version}.pkl"
+    gcs_model_path = f"{MODEL_DIR}/model_{version}.pkl"
     save_and_upload_model(model, local_model_path, gcs_model_path)
 
 if __name__ == "__main__":
