@@ -78,7 +78,7 @@ Normalization statistics are computed from the training data and stored in GCS a
     - The main directory is `src`.
     - Inside `src`, there are two main folders: `trainer` and `serve`.
     - Each of these folders has their respective Dockerfiles, and they contain the `train.py` and `predict.py` code respectively.
-    - There's also a `build.py` script in the main directory which uses the `aiplatform` library to build and deploy the model to the Vertex AI Platform.
+    - There's also a `build.py` script in the main directory which uses the `aiplatform` library to build and deploy the model to the Vertex AI Platform and a `inference.py` script which can be used to generate predictions from the model.
 ```
 src/
 |-- trainer/
@@ -88,6 +88,7 @@ src/
 |   |-- Dockerfile
 |   |-- predict.py
 |-- build.py
+|--inference.py
 ```
 
 ### Model Training Pipeline (`trainer/train.py`)
@@ -109,9 +110,9 @@ This script orchestrates the model training pipeline, which includes data retrie
 The Dockerfile located within the `trainer` directory defines the containerized environment where the training script is executed. Here's a breakdown of its content:
 - **Base Image**: Built from `python:3.9-slim`, providing a minimal Python 3.9 environment.
 - **Working Directory**: Set to the root (`/`) for simplicity and easy navigation within the container.
-- **Environment Variable**: `AIP_STORAGE_URI` is set with the GCS path where the model will be stored.
+- **Environment Variable**: `AIP_STORAGE_URI` is set with the GCS path where the model will be stored and 'BUCKET_NAME' is set with the GCS bucket name.
 - **Copying Training Script**: The training script located in the `trainer` directory is copied into the container.
-- **Installing Dependencies**: Essential Python libraries such as `pandas`, `scikit-learn`, and `google-cloud-storage` are installed without caching to keep the image size small.
+- **Installing Dependencies**: Only the necessary dependencies that are relevant to the training code are installed to minimize the Docker image size.
 - **Entry Point**: The container's entry point is set to run the training script, making the container executable as a stand-alone training job.
 
 The provided Docker image is purpose-built for training machine learning models on Google Cloud's [Vertex AI Platform](https://cloud.google.com/vertex-ai?hl=en). Vertex AI is an end-to-end platform that facilitates the development and deployment of ML models. It streamlines the ML workflow, from data analysis to model training and deployment, leveraging Google Cloud's scalable infrastructure.
@@ -137,7 +138,7 @@ This script handles the model serving pipeline, which includes loading the most 
 - **Working Directory**: The working directory in the container is set to `/app` for a clean workspace.
 - **Environment Variables**: Sets up environment variables needed for the Flask app to correctly interface with Google Cloud services and define API behavior.
 - **Copying Serving Script**: The `predict.py` script is copied from the local `serving` directory into the container's `/app` directory.
-- **Installing Dependencies**: Installs Flask, `google-cloud-storage`, `joblib`, `scikit-learn`, and `grpcio` using `pip` with no cache to minimize the Docker image size.
+- **Installing Dependencies**: Only the necessary dependencies that are relevant to the serving code are installed to minimize the Docker image size.
 - **Entry Point**: The Dockerfile's entry point is configured to run the `predict.py` script, which starts the Flask application when the container is run.
 
 ### Pushing Docker Images to Google Artifact Registry
@@ -156,12 +157,7 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
         ```
 
 - **Step 3: Configure Docker for GCR**
-    1. Give the service account (the one you used for dvc which has bucket access) Artifact Registry Administrator permissions to the project:
-    Go to IAM & Admin > IAM and add the service account. Find your service account in the list of service accounts and click the pencil icon to edit. Add the Artifact Registry Administrator role to the service account. Download the JSON key for the service account and save it as `key.json` in the root directory of the project.
-        ```bash
-        gcloud auth activate-service-account --key-file=key.json
-        ```
-    2. Configure Docker to use the gcloud command-line tool as a credential helper:
+    1. Configure Docker to use the gcloud command-line tool as a credential helper:
         ```bash
         gcloud auth configure-docker us-east1-docker.pkg.dev
         ```
@@ -195,7 +191,6 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
 [Create a custom container image for training (Vertex AI)](https://cloud.google.com/vertex-ai/docs/training/create-custom-container)
 
 ### Building and Deploying the Model (`build.py`)
-
 The `build.py` script is responsible for building and deploying the model to the Vertex AI Platform. It uses the `aiplatform` library to create a custom container training job and deploy the model to an endpoint.  The CustomContainerTrainingJob class is a part of Google Cloud's Vertex AI Python client library, which allows users to create and manage custom container training jobs for machine learning models. A custom container training job enables you to run your training application in a Docker container that you can customize.
 
 #### Steps to Build and Deploy the Model
@@ -203,14 +198,14 @@ The `build.py` script is responsible for building and deploying the model to the
 
 2. **Initialize AI Platform**: With the `initialize_aiplatform` function, the Google Cloud AI platform is initialized using the project ID, region, and staging bucket details. This also binds the service account to the AI Platform which is crucial for the training job to access the GCS bucket and other Google Cloud services.
 
-3. **Create and Run Training Job**: The `create_and_run_job` function creates a `CustomContainerTrainingJob` using the specified container URIs and then starts the training job.
+3. **Create Training Job**: The `create_training_job` function creates a custom container training job using the `CustomContainerTrainingJob` class.
+
+4. **Run Training Job**: The `run_training_job` function runs the training job using the `run` method of the `CustomContainerTrainingJob` class.
 
 4. **Deploy Model**: After the training job completes, the `deploy_model` function deploys the trained model to an AI Platform endpoint, using the provided model display name.
 
 - When you run this code the aiplatform library will create a custom container training job and deploy the model to an endpoint. It uses both the dockerfiles to build the training and serving images. The training image is used to train the model and the serving image is used to serve the model.
 
-
-**Note**:
 > There are multiple configuration options available in vertex AI other than these parameters. Please refer to the [documentation](https://cloud.google.com/python/docs/reference/aiplatform/latest/google.cloud.aiplatform.CustomContainerTrainingJob) for more information. <br>
 
 The advantages of using a custom training job over a normal training job in Vertex AI include:
@@ -228,9 +223,7 @@ Additionally, you can configure model monitoring for the endpoint, specifying th
 
 ![Model_Monitoring](images/Model_Monitoring.png)
 
-**Note**:
-You could have setup model monitoring and autoscaling in the `build.py` script. However, for the sake of simplicity, we have not included those features in this project. Please refer to the [documentation](https://cloud.google.com/vertex-ai/docs/general/deployment#aiplatform_deploy_model_custom_trained_model_sample-python_vertex_ai_sdk) for more information on how to implement those features. This could also be done via the Vertex AI UI.
-
+The prediction from `inferece.py` is known as online prediction. You can also generate predictions in batch mode. Batch prediction is a feature of Vertex AI that enables you to generate predictions on a large dataset in a single request. Batch prediction is useful when you need to generate predictions on a large dataset, such as a daily weather forecast, or when you need to generate predictions on a schedule, such as every hour. Batch prediction is also useful when you need to generate predictions on demand, such as when you have a large number of incoming requests at the same time. Reger to the reference section for more information on batch prediction.
 
 
 **Reference:** <br>
@@ -286,13 +279,8 @@ You could have setup model monitoring and autoscaling in the `build.py` script. 
 
 The updated script ensures a streamlined process where data is preprocessed and the model is retrained daily at 9 PM. The retrained model is then saved to Google Cloud Storage, ready for deployment or further evaluation.<br>
 
-
-
 To use the latest model for serving rebuild the training image and use the same image for serving. Our prediction code will automatically use the latest model for serving.
 Run 'python build.py' to build and deploy the latest model in the Vertex AI Platform.
 
-![Prediction_Page](image.png)
-
-If all the steps are followed correctly, you should be able to see the above page. You can enter the values for the features and click on the predict button to get the prediction for the CO(GT) feature.
 
 
