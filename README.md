@@ -194,15 +194,13 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
 The `build.py` script is responsible for building and deploying the model to the Vertex AI Platform. It uses the `aiplatform` library to create a custom container training job and deploy the model to an endpoint.  The CustomContainerTrainingJob class is a part of Google Cloud's Vertex AI Python client library, which allows users to create and manage custom container training jobs for machine learning models. A custom container training job enables you to run your training application in a Docker container that you can customize.
 
 #### Steps to Build and Deploy the Model
-1. **Initialize Environment Variables**: The script starts by loading the environment variables such as the region, project ID, bucket, and container URIs using the `initialize_variables` function.
+1. **Initialize AI Platform**: With the `initialize_aiplatform` function, the Google Cloud AI platform is initialized using the project ID, region, and staging bucket details. 
 
-2. **Initialize AI Platform**: With the `initialize_aiplatform` function, the Google Cloud AI platform is initialized using the project ID, region, and staging bucket details. This also binds the service account to the AI Platform which is crucial for the training job to access the GCS bucket and other Google Cloud services.
+2. **Create Training Job**: The `create_training_job` function creates a custom container training job using the `CustomContainerTrainingJob` class.
 
-3. **Create Training Job**: The `create_training_job` function creates a custom container training job using the `CustomContainerTrainingJob` class.
+3. **Run Training Job**: The `run_training_job` function runs the training job using the `run` method of the `CustomContainerTrainingJob` class. This also binds the service account to the AI Platform which is crucial for the training job to access the GCS bucket and other Google Cloud services.
 
-4. **Run Training Job**: The `run_training_job` function runs the training job using the `run` method of the `CustomContainerTrainingJob` class.
-
-4. **Deploy Model**: After the training job completes, the `deploy_model` function deploys the trained model to an AI Platform endpoint, using the provided model display name.
+4. **Deploy Model**: After the training job completes, the `deploy_model` function deploys the trained model to an AI Platform endpoint, using the provided model display name. 
 
 - When you run this code the aiplatform library will create a custom container training job and deploy the model to an endpoint. It uses both the dockerfiles to build the training and serving images. The training image is used to train the model and the serving image is used to serve the model.
 
