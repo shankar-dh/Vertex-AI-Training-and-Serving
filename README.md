@@ -31,6 +31,12 @@ AIP_PREDICT_ROUTE=/predict
 ```
 You will get to know about the usage of these variables in the later sections of the project. Replace the placeholders such as `[YOUR_BUCKET]`, `[YOUR_PROJECT_ID]` with the appropriate values relevant to your setup. [YOUR_BUCKET] should be the name of your GCS bucket. [YOUR_PROJECT_ID] should be the name of your GCP project ID.
 
+
+Ensure you have all the necessary Python packages installed to run the project by using the `requirements.txt` file. Run the following command to install the packages.
+```bash
+pip install -r requirements.txt
+```
+
 ## Data Source
 The dataset used in this project is acquired from the UCI Machine Learning Repository. You can find the dataset [here](https://archive.ics.uci.edu/dataset/360/air+quality). This data is version tracked by dvc. Refer to the dvc lab on how to use dvc to track the data.
 
