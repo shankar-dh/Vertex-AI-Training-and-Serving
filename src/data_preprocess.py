@@ -80,7 +80,9 @@ def main():
     test_data_gcs_path = "gs://mlops_fall23/data/test/test_data.csv"
     normalization_stats_gcs_path = "gs://mlops_fall23/scaler/normalization_stats.json"
     
-    air_quality_data = pd.read_excel(os.path.join("..", "data", "raw_data", "AirQualityUCI.xlsx"))
+    # air_quality_data = pd.read_excel(os.path.join("..", "data", "raw_data", "AirQualityUCI.xlsx"))
+    gcs_train_data_path = f"gs://{bucket_name}/data/AirQualityUCI.xlsx"
+    air_quality_data = pd.read_excel(gcs_train_data_path)
     
     air_quality_data['YearMonth'] = air_quality_data['Date'].dt.to_period('M')
     monthly_groups = air_quality_data.groupby('YearMonth')
