@@ -235,9 +235,59 @@ The prediction from `inference.py` is known as online prediction. You can also g
 
 ## Continous Model retraining with Airflow
 ### Workflow Overview:<br><br>
+#### Step 1: Enable Google Cloud Composer
 
+- Access Google Cloud Console: Log in to the Google Cloud Console.
+- Navigate to APIs & Services: Go to the “APIs & Services” dashboard.
+- Enable Cloud Composer API: Search for “Cloud Composer” and enable the API for your project.
+
+#### Step 2: Create a New Airflow Environment
+
+- Open Cloud Composer: In the GCP Console, go to the Navigation menu and select “Cloud Composer”.
+- Create Environment: Click the “Create Environment” button.
+- Configure the Environment:
+1. Name: Choose a suitable name for your environment.
+2. Location/Region: Select the region where you want to deploy the environment.
+3. Zone: Optionally specify a zone within the selected region.
+4. Airflow Version: Choose Airflow 2.x.x (The latest version).
+- Create: Click “Create” to start the environment setup.
+
+#### Step 3: Add Dependencies
+
+Once the environment is created, you can add Python dependencies:
+
+- Access Environment Details: In the Cloud Composer environments list, click on the name of your newly created environment.
+- Go to PyPI Packages: Navigate to the “PyPI Packages” tab.
+- Add Dependencies:
+1. Add the required Python packages (like python-dotenv, scikit-learn, numpy and joblib) and specify their versions.
+
+#### Step 4: Access the Airflow Web UI
+
+You can access the Airflow web interface directly from the Cloud Composer environment:
+
+- Open Environment Details: Click on your environment in the Cloud Composer page.
+- Access Web UI: Under the “Airflow web server” section, click the link provided to open the Airflow Web UI.
+
+#### Step 5: Deploying DAGs
+
+To deploy DAGs in your Airflow environment:
+
+- Access the DAGs Folder: In the environment details page, find the “DAGs folder” link in the “Source code” section.
+- Upload DAG Files:
+1. Click on the link to open the Google Cloud Storage bucket associated with your Airflow environment.
+2. Upload your DAG files (.py files containing Airflow DAG definitions) to this bucket.
+
+#### Step 6: View and Monitor DAGs
+
+After uploading your DAGs:
+
+- Open the Airflow Web UI: As described in Step 4.
+- View DAGs: Your uploaded DAGs should be visible in the Airflow Web UI.
+- Trigger and Monitor: You can trigger DAGs manually, monitor their progress, and view logs directly from the UI.
+
+#### DAG FILE:
 1. **DAG Configuration**: <br>
-    - **DAG Name**: `Retraining_Model`<br>
+    - **DAG Name**: `model_retraining`<br>
     - **Description**: Data preprocessing and model retraining at 9 PM every day.<br>
     - **Schedule**: Every day at 9 PM (`schedule_interval='0 21 * * *'`)<br>
     - **Start Date**: October 24, 2023<br>
@@ -255,7 +305,7 @@ The prediction from `inference.py` is known as online prediction. You can also g
         - **Task ID**: `run_preprocess_script`<br>
         - **Action**: Executes the previously downloaded Python script (`preprocess.py`) to preprocess the data.<br>
         - **Environment Variable**:<br>
-            - `'AIP_MODEL_DIR': 'gs://mlops-data-ie7374/model/'`: Indicates the directory in Google Cloud Storage where the model will be saved after training. (Note: Adjust the path if necessary)<br>
+            - `'AIP_MODEL_DIR': 'gs://mlops_fall23/model/'`: Indicates the directory in Google Cloud Storage where the model will be saved after training. (Note: Adjust the path if necessary)<br>
         - **Execution Command**: `python /tmp/preprocess.py`<br><br>
 
     c. **Pull train.py from GitHub**:<br>
