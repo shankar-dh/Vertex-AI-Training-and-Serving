@@ -95,7 +95,7 @@ def data_transform(df):
     client = storage.Client()
     bucket_name = os.getenv("BUCKET_NAME")
     blob_path = 'scaler/normalization_stats.json' # Change this to your blob path where the data is stored
-    bucket = client.get_bucket(bucket_name)
+    bucket = client.get_bucket("mlops_fall23")
     blob = bucket.blob(blob_path)
 
     # Download the json as a string
