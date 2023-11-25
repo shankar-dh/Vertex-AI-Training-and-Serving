@@ -17,7 +17,7 @@ load_dotenv()
 fs = gcsfs.GCSFileSystem()
 storage_client = storage.Client()
 bucket_name = os.getenv("BUCKET_NAME")
-MODEL_DIR = os.getenv("AIP_MODEL_DIR")
+MODEL_DIR = os.environ['AIP_STORAGE_URI']
 
 def load_data(gcs_train_data_path):
     """
@@ -95,7 +95,7 @@ def data_transform(df):
     client = storage.Client()
     bucket_name = os.getenv("BUCKET_NAME")
     blob_path = 'scaler/normalization_stats.json' # Change this to your blob path where the data is stored
-    bucket = client.get_bucket("mlops_fall23")
+    bucket = client.get_bucket("mlops__fall23")
     blob = bucket.blob(blob_path)
 
     # Download the json as a string
@@ -146,7 +146,7 @@ def main():
     and uploading the model to Google Cloud Storage.
     """
     # Load and transform data
-    gcs_train_data_path = "gs://mlops_fall23/data/train/train_data.csv"
+    gcs_train_data_path = "gs://mlops__fall23/data/train/train_data.csv"
     df = load_data(gcs_train_data_path)
     X_train, X_test, y_train, y_test = data_transform(df)
 
@@ -159,6 +159,7 @@ def main():
     version = current_time_edt.strftime('%Y%m%d_%H%M%S')
     local_model_path = "model.pkl"
     gcs_model_path = f"{MODEL_DIR}/model_{version}.pkl"
+    print(gcs_model_path)
     save_and_upload_model(model, local_model_path, gcs_model_path)
 
 if __name__ == "__main__":

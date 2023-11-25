@@ -2,8 +2,8 @@ FROM python:3.9-slim
 
 WORKDIR /
 
-ENV AIP_STORAGE_URI=gs://mlops_fall23/model/
-ENV BUCKET_NAME=mlops_fall23
+ENV AIP_STORAGE_URI=gs://mlops__fall23/model
+ENV BUCKET_NAME=mlops__fall23
 
 COPY trainer /trainer
 

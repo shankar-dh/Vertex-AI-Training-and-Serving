@@ -56,7 +56,7 @@ def run_training_job(job, display_name, base_output_dir, service_account_email):
     )
     return model
 
-def deploy_model_to_endpoint(model, display_name):
+def deploy_model_to_endpoint(model, display_name, service_account_email):
     """Deploys the trained model to an endpoint.
     :param model: Trained model
     :param display_name: Display name of the endpoint
@@ -65,7 +65,8 @@ def deploy_model_to_endpoint(model, display_name):
     """
     endpoint = model.deploy(
         deployed_model_display_name=display_name,
-        sync=True
+        sync=True,
+        service_account=service_account_email
     )
     return endpoint
 
@@ -78,7 +79,7 @@ def main():
     model = run_training_job(training_job, DISPLAY_NAME, BASE_OUTPUT_DIR, SERVICE_ACCOUNT_EMAIL)
 
     # Deploy the model to the endpoint
-    endpoint = deploy_model_to_endpoint(model, DISPLAY_NAME)
+    endpoint = deploy_model_to_endpoint(model, DISPLAY_NAME,SERVICE_ACCOUNT_EMAIL)
     return endpoint
 
 if __name__ == '__main__':
