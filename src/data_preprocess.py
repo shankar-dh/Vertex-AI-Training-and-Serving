@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import gcsfs
 import os
-import openpyxl
+# import openpyxl
 
 # Initialize a gcsfs file system object
 fs = gcsfs.GCSFileSystem()
