@@ -38,7 +38,7 @@ pull_train_script = BashOperator(
 
 
 env = {
-    'AIP_MODEL_DIR': 'gs://mlops_fall23/model/'
+    'AIP_STORAGE_URI': 'gs://mlops__fall23/model'
 }
 
 # Tasks for running scripts
