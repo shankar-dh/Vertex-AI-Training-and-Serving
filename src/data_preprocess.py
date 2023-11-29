@@ -77,12 +77,12 @@ def update_datasets(monthly_dataframes, train_data_gcs_path, test_data_gcs_path,
 
 def main():
     # Define GCS paths for the data
-    train_data_gcs_path = "gs://mlops__fall23/data/train/train_data.csv"
-    test_data_gcs_path = "gs://mlops__fall23/data/test/test_data.csv"
-    normalization_stats_gcs_path = "gs://mlops__fall23/scaler/normalization_stats.json"
+    train_data_gcs_path = "gs://mlops___fall2023/data/train/train_data.csv"
+    test_data_gcs_path = "gs://mlops___fall2023/data/test/test_data.csv"
+    normalization_stats_gcs_path = "gs://mlops___fall2023/scaler/normalization_stats.json"
     
     # air_quality_data = pd.read_excel(os.path.join("..", "data", "raw_data", "AirQualityUCI.xlsx"))
-    gcs_train_data_path = "gs://mlops__fall23/data/AirQualityUCI.xlsx"
+    gcs_train_data_path = "gs://mlops___fall2023/data/AirQualityUCI.xlsx"
     air_quality_data = pd.read_excel(gcs_train_data_path)
     
     air_quality_data['YearMonth'] = air_quality_data['Date'].dt.to_period('M')
