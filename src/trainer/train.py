@@ -95,7 +95,7 @@ def data_transform(df):
     client = storage.Client()
     bucket_name = os.getenv("BUCKET_NAME")
     blob_path = 'scaler/normalization_stats.json' # Change this to your blob path where the data is stored
-    bucket = client.get_bucket("mlops__fall23")
+    bucket = client.get_bucket("mlops___fall2023")
     blob = bucket.blob(blob_path)
 
     # Download the json as a string
@@ -146,7 +146,7 @@ def main():
     and uploading the model to Google Cloud Storage.
     """
     # Load and transform data
-    gcs_train_data_path = "gs://mlops__fall23/data/train/train_data.csv"
+    gcs_train_data_path = "gs://mlops___fall2023/data/train/train_data.csv"
     df = load_data(gcs_train_data_path)
     X_train, X_test, y_train, y_test = data_transform(df)
 
