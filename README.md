@@ -13,6 +13,8 @@ Goto IAM & Admin > service accounts and create a service account with the follow
 
 Download the json file for the service account and save it in your system safely. You will need this file to authenticate the service account. To authenticate the service account run the following command:
 ```bash
+gcloud auth login
+gcloud auth application-default login
 gcloud auth activate-service-account --key-file=service_account.json
 ```
 Replace `service_account.json` with the name of the json file you downloaded.
@@ -147,7 +149,7 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
 - **Step 1: Enable APIs**
     1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
     2. Navigate to **APIs & Services** > **Library**.
-    3. Search for and enable the **Container Registry API** and the **Vertex AI API**.
+    3. Search for and enable the **Artifact Registry API**, **Composer API** and **Vertex AI API**.
 
 - **Step 2: Set Up Google Cloud CLI**
     1. Install and initialize the Google Cloud CLI to authenticate and interact with Google Cloud services from the command line.
@@ -170,18 +172,16 @@ Download Google cloud SDK based on your OS from [here](https://cloud.google.com/
     1. Navigate to the src directory and run:
 
     ```bash
-    docker build -f trainer/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/trainer:v1 .
+    docker buildx build --platform linux/amd64 -f trainer/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/trainer:v1 . --load
     docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/trainer:v1
-
     ```
 
 - **Step 6: Build and Push the Serving Image**
     1. Navigate to the src directory and run:
 
     ```bash
-    docker build -f serve/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1 .
+    docker buildx build --platform linux/amd64 -f serve/Dockerfile -t us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1 . --load
     docker push us-east1-docker.pkg.dev/[YOUR_PROJECT_ID]/[FOLDER_NAME]/serve:v1
-
     ```
 
     **Note:** 
